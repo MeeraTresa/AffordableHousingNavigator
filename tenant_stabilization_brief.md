@@ -1,98 +1,88 @@
 # Tenant Stabilization Brief
-**Prepared:** 2026-11-17 18:39 · **Hearing:** Mon 2026-11-23 09:30 (≈ 134.9 h) · **Urgency:** Standard
-**Block:** 1000 Block St Nicholas Avenue · **Tract:** 36061024500 (New York County)
+**Prepared:** 2026-11-17 19:36 · **Hearing:** 2026-11-23 09:30 (≈ 133.9 h) · **Urgency:** STANDARD
+**Block:** 1000 Block St Nicholas Avenue · **Tract:**  (New York County)
 > Internal triage aid prepared by a paralegal with AI assistance. Not legal advice. Attorney review required.
 
 ## 1. Corroborating public records (open, residential, ≤800 m)
 | Request ID | Block | Type | Status | Opened | Similarity |
 |---|---|---|---|---|---|
-| `NYC-19346354` | 1000 Block St Nicholas Avenue, New York, NY | HPD CLASS A HABITABILITY VIOLATION | Open - HPD Class Violation | 2026-11-01 | 0.81 |
-| `NYC-19346353` | 1000 Block St Nicholas Avenue, New York, NY | HPD CLASS B HABITABILITY VIOLATION | Open - HPD Class Violation | 2026-11-01 | 0.77 |
-| `NYC-19346259` | 900 Block St Nicholas Avenue, New York, NY | HPD CLASS C HABITABILITY VIOLATION | Open - HPD Class Violation | 2026-11-01 | 0.70 |
+| `NYC-19346354` | 1000 Block St Nicholas Avenue, New York, NY (0.0m) | HPD CLASS A HABITABILITY VIOLATION | Open - HPD Class Violation | 2026-11-01 | 0.815 |
+| `NYC-19346353` | 1000 Block St Nicholas Avenue, New York, NY (0.0m) | HPD CLASS B HABITABILITY VIOLATION | Open - HPD Class Violation | 2026-11-01 | 0.719 |
+| `NYC-19346259` | 900 Block St Nicholas Avenue, New York, NY (469.0m) | HPD CLASS C HABITABILITY VIOLATION | Open - HPD Class Violation | 2026-11-01 | 0.698 |
 
 ### Near-matches excluded (and why)
-- `DECOY-NEWY-05` (sim 0.80): Closed – Abated — condition was repaired and re-inspected; not an active hazard. Labeled [Planted Case] teaching decoy.
-- `NYC-19350355` (sim 0.79): Outside the 800 m corroboration radius from the tenant's block.
-- `NYC-19350191` (sim 0.78): Outside the 800 m corroboration radius from the tenant's block.
-- `NYC-19346350` (sim 0.78): Outside the 800 m corroboration radius from the tenant's block.
-- `DECOY-NEWY-02` (sim 0.77): Commercial property — no residential tenants; cannot support a residential habitability defense. Labeled [Planted Case] teaching decoy.
-- `NYC-19350323` (sim 0.77): Outside the 800 m corroboration radius from the tenant's block.
-- `NYC-19350315` (sim 0.77): Outside the 800 m corroboration radius from the tenant's block.
-- `DECOY-NEWY-01` (sim 0.77): Commercial property — no residential tenants; cannot support a residential habitability defense. Labeled [Planted Case] teaching decoy.
+- `DECOY-NEWY-05`: Violation was marked closed/abated as of record date. [Planted Case] Known decoy record. (Residential, 6183.0m)
+- `NYC-19350355`: Beyond 800m corroboration radius from tenant block. (Residential, 6994.0m)
+- `NYC-19350191`: Beyond 800m corroboration radius from tenant block. (Residential, 4735.0m)
+- `NYC-19346350`: Beyond 800m corroboration radius from tenant block. (Residential, 1102.0m)
+- `DECOY-NEWY-02`: Commercial property type; not residential tenant corroboration. [Planted Case] Known decoy record. (Commercial, 4953.0m)
+- `NYC-19350323`: Beyond 800m corroboration radius from tenant block. (Residential, 5323.0m)
+- `NYC-19350315`: Beyond 800m corroboration radius from tenant block. (Residential, 5323.0m)
+- `DECOY-NEWY-01`: Commercial property type; not residential tenant corroboration. [Planted Case] Known decoy record. (Commercial, 1134.0m)
 
 ## 2. Applicable law
-- **NY Social Services Law § 143-b & MDL § 302-a:** Spiegel Law & Rent-Impairing Violation Complete Defense — Provides a complete defense against nonpayment eviction where uncorrected official hazardous or rent-impairing residential building violations persist.
-- **NYC Admin. Code § 26-1302 & § 27-2115:** NYC Right to Counsel & Housing Maintenance Code Hazard Classes — Guarantees free Housing Court counsel for NYC residential households <=200% FPL and requires immediate correction (24 hours for Class C heat/hot-water/lead hazards; 30 days for Class B mold/leaks).
-- **NY RPAPL § 711(2) & RPL § 235-b:** New York 14-Day Written Rent Demand & Warranty of Habitability — Mandates a 14-day written rent demand prior to residential nonpayment filing and entitles tenants to statutory rent abatement for conditions dangerous, hazardous, or detrimental to life, health, or safety.
+- **RPL § 235-b / RPAPL § 711(2):** warranty of habitability → rent abatement; 14-day written demand prerequisite.
+- **NYC Admin. Code § 27-2115 / § 26-1302:** Class C correction within 24 h (Class B: 30 days); Right to Counsel ≤200% FPL.
+- **SSL § 143-b / MDL § 302-a:** defense where rent-impairing violations remain uncorrected *(applicability: attorney to confirm)*.
 
 ## 3. Emergency relief match
 | Program | Status | Why | Max | Apply |
 |---|---|---|---|---|
 | Emergency Repair Program Tenant Stabilization & Escrow Clinic (BUL-NY-04) | ✅ Eligible | Tenant rents a residential unit (intake confirmed).; 3 open residential HPD/311 record(s) on/near block — attorney must confirm at least one is in the tenant's building. | $5,500 | https://bronxworks.org |
 | NYC Local Law 136 Right to Counsel & HPD Class C Spiegel Defense (BUL-NY-02) | ✅ Eligible | Tenant rents a residential unit (intake confirmed).; 3 open residential HPD/311 record(s) on/near block — attorney must confirm at least one is in the tenant's building. | $4,000 | https://legalaidnyc.org |
-| NYC Human Resources Administration Emergency Assistance (One Shot Deal) (BUL-NY-01) | ✅ Eligible | Tenant rents a residential unit (intake confirmed). | $15,000 | https://access.nyc.gov |
-| CityFHEPS Prevention & Housing Court Arrears Pathway (BUL-NY-03) | ✅ Eligible | Tenant rents a residential unit (intake confirmed).; $31,000 vs limit $53,300 (household of 3) | $18,000 | https://nyc.gov/site/hra |
+| CityFHEPS Prevention & Housing Court Arrears Pathway (BUL-NY-03) | ✅ Eligible | Tenant rents a residential unit (intake confirmed).; $1,000 vs limit $53,300 (household of 3) | $18,000 | https://nyc.gov/site/hra |
+| NYC Human Resources Administration Emergency Assistance (One Shot Deal) (BUL-NY-01) | ✅ Eligible | Tenant rents a residential unit (intake confirmed).; Cap $15,000 vs arrears $350 | $15,000 | https://access.nyc.gov |
 
 ## 4. Neighborhood context
-Severe rent burden 32.8% (metro 25.2%) · 414 nonpayment filings/yr [Modeled] (median tract 195) · 91.6% no-vehicle households → plan court transit.
+Severe rent burden 32.8% (metro 25.2%) · 414 nonpayment filings/yr [Modeled] (median tract 196) · 91.6% no-vehicle households → plan court transit.
 
 ## 5. Evidentiary boundary — what the public record cannot prove
 - Whether the cited violations are in the tenant's building/unit (100-block redaction).
 - Whether the 14-day written rent demand was properly served.
 - Current repair status after citation created_date (landlord claims condition fixed → request HPD re-inspection).
-- Confirm tenant received a 14-day WRITTEN rent demand before filing (RPAPL § 711(2)). Not provable from public records.
-- Class C (heat/hot water) must be corrected within 24 hours; Class B within 30 days. Compare against violation created_date.
 
 ## 6. Intake memo (draft for attorney)
-## Intake Memo: Tenant Stabilization Brief
+# Intake Memo: Marisol
 
-**Client:** Tenant (Name/Unit removed)
-**Address:** 1000 Block St Nicholas Avenue, Manhattan
-**Hearing Date:** Monday, November 23, 2026, 09:30 (134.9 hours remaining)
-**Household:** 3 members, annual income $31,000 USD. Daughter has asthma (not an eligibility input, noted for attorney).
-**Court Index Number:** Yes
+**Tenant:** Marisol
+**Address:** 1000 Block St Nicholas Avenue
+**Hearing Date/Time:** 2026-11-23T09:30 (in 133.9 hours)
+**Reported Hazards:** Severe heat outage, bathroom mold.
 
-### Tenant Narrative
-Tenant reports no heat since early November, black mold around the bathtub, and water leaking through the bathroom wall.
+## Case Summary
 
-### Corroborating Public Records (100-block)
-Public records corroborate conditions on the block or building cluster, not necessarily inside the tenant's unit.
+Marisol is facing eviction proceedings with a hearing scheduled for Monday, November 23, 2026, at 9:30 AM. She reports significant habitability issues in her residence, specifically a severe heat outage and bathroom mold.
 
-*   **Mold around tub:** `NYC-19346354` (1000 Block St Nicholas Avenue, HPD Class A, Open, Created: 2026-11-01)
-*   **Water leak through wall:** `NYC-19346353` (1000 Block St Nicholas Avenue, HPD Class B, Open, Created: 2026-11-01)
-*   **No heat (boiler access):** `NYC-19346259` (900 Block St Nicholas Avenue, HPD Class C, Open, Created: 2026-11-01)
+## Public Record Corroboration
 
-**Note on Boiler Repair Claim:** Landlord's lawyer claims boiler was fixed last week. Public record (`NYC-19346259`) shows Class C still open as of 2026-11-01. Cannot verify repair from public data. Recommend HPD re-inspection and tenant-provided dated photo/log.
+Public records for the 1000 Block St Nicholas Avenue and immediate vicinity corroborate ongoing habitability concerns. These records indicate conditions on the block or building cluster, not necessarily within Marisol's specific unit.
 
-### Applicable Law
-*   **NYC Admin. Code § 26-1302 & § 27-2115:** Right to Counsel and Housing Maintenance Code Hazard Classes (Class C: 24h correction; Class B: 30 days).
-*   **NY RPAPL § 711(2) & RPL § 235-b:** 14-Day Written Rent Demand and Warranty of Habitability.
-*   **NY Social Services Law § 143-b & MDL § 302-a:** Spiegel Law & Rent-Impairing Violation Complete Defense.
+*   `NYC-19346354`: Open HPD Class A violation for mold around the bathtub at 1000 Block St Nicholas Avenue, created 2026-11-01.
+*   `NYC-19346353`: Open HPD Class B violation for a water leak in the bathroom at 1000 Block St Nicholas Avenue, created 2026-11-01.
+*   `NYC-19346259`: Open HPD Class C violation for lack of access to the heating system/boiler room at 900 Block St Nicholas Avenue, created 2026-11-01.
 
-**Procedural Check:** Confirm tenant received a 14-day WRITTEN rent demand (RPAPL § 711(2)).
+## Household Details
 
-### Emergency Relief Match
-The household is eligible for several programs:
-*   **NYC Human Resources Administration Emergency Assistance (One Shot Deal):** ELIGIBLE. Max Award: $15,000.
-*   **NYC DSS Homebase Network - CityFHEPS Prevention & Housing Court Arrears Pathway:** ELIGIBLE. Max Award: $18,000.
-*   **The Legal Aid Society of New York - NYC Local Law 136 Right to Counsel & HPD Class C Spiegel Defense:** ELIGIBLE.
-*   **BronxWorks & RiseBoro Legal Clinic - Emergency Repair Program Tenant Stabilization & Escrow Clinic:** ELIGIBLE. Max Award: $5,500.
+*   **Household Size:** 3
+*   **Annual Income:** $1,000 USD
+*   **Arrears:** $350 USD
+*   **Court Index Number:** Yes
+*   **Written Rent Demand Received:** Yes
 
-### Neighborhood Context (Census Tract: 36061024500)
-*   **Severe Rent Burden:** 32.8% (vs. metro 25.2%).
-*   **[Modeled] Annual Eviction Filings:** 414 non-payment filings (vs. median 195).
-*   **Poverty Rate:** 21%.
-*   **No Vehicle:** 91.6% of households.
-*   **Open Residential 311 Complaints:** 12.
+## Emergency Relief Fund Eligibility
 
-### Evidentiary Boundary
-Public records corroborate block-level conditions, not unit-specific conditions. Modeled court filings are neighborhood baselines, not specific to this tenant's docket.
+Based on the provided household information and existing habitability records, Marisol appears eligible for the following emergency rental relief programs:
 
-**What the record can't prove yet:**
-*   Whether the HPD/311 records are in the tenant's specific building.
-*   Exact arrears amount.
-*   Receipt of 14-day written rent demand.
-*   Current condition of boiler/heat in tenant's unit.
+*   **Emergency Repair Program Tenant Stabilization & Escrow Clinic** (BronxWorks & RiseBoro Legal Clinic)
+*   **NYC Local Law 136 Right to Counsel & HPD Class C Spiegel Defense** (The Legal Aid Society of New York)
+*   **CityFHEPS Prevention & Housing Court Arrears Pathway** (NYC DSS Homebase Network)
+*   **NYC Human Resources Administration Emergency Assistance (One Shot Deal)** (NYC Department of Social Services)
+
+## Outstanding Information / Attorney Actions
+
+*   Confirm whether the open habitability cases are specifically for Marisol's building.
+*   Advise Marisol on next steps for engaging with eligible relief programs.
+*   Investigate the specific details of the severe heat outage and bathroom mold in Marisol's unit.
 
 
 ## 7. Equity audit (auto-generated after output; not used in any ranking)
