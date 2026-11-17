@@ -99,13 +99,13 @@
       <div class="chat-box" id="chat-box">
         <div class="msg msg-agent">
           <strong>Stabilization Navigator</strong><br>
-          Welcome. I am your intake co-pilot for New York City residential eviction defense.
+          Welcome. I am your intake co-pilot for tenant stabilization and eviction defense (currently loaded with the New York City metro dataset, architected to scale across municipal 311 & housing court systems).
           <br><br>
           Provide your tenant's <strong>street address</strong> (e.g. <em>1042 St Nicholas Ave</em> or <em>2534 Grand Concourse</em>; unit numbers are automatically redacted to 100-blocks for tenant privacy), <strong>court hearing date</strong>, and <strong>habitability hazards</strong>. I will:
           <ul style="margin: 6px 0 0 16px; padding: 0;">
             <li>Query BigQuery <code>complaints_embedded</code> via semantic vector search.</li>
             <li>Deterministically filter out commercial and closed decoys within 800m.</li>
-            <li>Evaluate CityFHEPS, One Shot Deal, Emergency Repair, and Right to Counsel relief funds.</li>
+            <li>Evaluate municipal emergency rental assistance and Right to Counsel programs.</li>
             <li>Draft a comprehensive <strong>Tenant Stabilization Brief</strong> with post-output equity audit notes.</li>
           </ul>
         </div>
