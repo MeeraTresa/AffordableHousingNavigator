@@ -99,7 +99,7 @@
       <div class="chat-box" id="chat-box">
         <div class="msg msg-agent">
           <strong>Stabilization Navigator</strong><br>
-          Welcome. I am your intake co-pilot for tenant stabilization and eviction defense (currently loaded with the New York City metro dataset, architected to scale across municipal 311 & housing court systems).
+          Welcome. I am your intake co-pilot for tenant stabilization and eviction defense (live with data across 6 metropolitan areas: New York, San Francisco, Chicago, Austin, Baton Rouge, and Cincinnati).
           <br><br>
           Provide your tenant's <strong>street address</strong> (e.g. <em>1042 St Nicholas Ave</em> or <em>2534 Grand Concourse</em>; unit numbers are automatically redacted to 100-blocks for tenant privacy), <strong>court hearing date</strong>, and <strong>habitability hazards</strong>. I will:
           <ul style="margin: 6px 0 0 16px; padding: 0;">
@@ -117,7 +117,7 @@
       </div>
 
       <div class="prov-bar" id="provenance-bar">
-        <span><strong>BigQuery Source:</strong> <code>a4i_housing.complaints_embedded</code> (174 NYC records)</span>
+        <span><strong>BigQuery Source:</strong> <code>a4i_housing.complaints_embedded</code> (1,044 records across 6 metros)</span>
         <span><strong>Embeddings:</strong> <code>gemini-embedding-2</code> (768-dim)</span>
         <span><strong>Timezone:</strong> Eastern Time (America/New_York)</span>
       </div>
@@ -199,7 +199,7 @@
       1: "Hello! I am a paralegal doing intake for tenant Marisol at 1000 Block St Nicholas Avenue, Manhattan. Court hearing is 2026-11-23T09:30. She has had freezing cold radiators, visible mold around the bathtub, and water leaking through the bathroom wall. Can you open her case and search habitability evidence?",
       2: "Here are the household facts: household size 3, annual income $31,000, arrears $3,350, with an active Housing Court index number and received 14-day written rent demand. Can you update the case and match emergency relief funds?",
       3: "Please draft an intake memo for the attorney and finalize the Tenant Stabilization Brief.",
-      4: "Start a new intake: 2500 Block Grand Concourse, Bronx. Hearing date 2026-11-26T10:00. Tenant reports chronic water leaks, peeling lead paint, and dampness causing toxic mold. What evidence exists on this block?",
+      4: "Start a new intake: 700 Block La Playa St, San Francisco, CA. Hearing date 2026-11-26T10:00. Tenant reports broken heating, dangerous electrical wiring, and plumbing leaks. What corroboration and emergency relief exist for San Francisco?",
       5: "Under New York housing law (NYC Admin Code & RPL 235-b), what are the legal remedies and landlord cure periods when heat and hot water are shut off?"
     };
 
