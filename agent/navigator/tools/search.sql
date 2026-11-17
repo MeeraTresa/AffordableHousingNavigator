@@ -20,6 +20,7 @@ hits AS (
        FROM UNNEST(@queries) AS q),
     query_column_to_search => 'query_vec',
     top_k => 20,
+    distance_type => 'COSINE',
     options => '{"use_brute_force":true}'
   )
 )
