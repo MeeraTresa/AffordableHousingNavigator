@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Stabilization Navigator · Housing Intake Co-Pilot</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+  <style>
+    body { max-width: 1280px; margin: auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; background: #e0e0e0; color: #333; }
+    .badge-eligible { background: #d4edda; color: #155724; font-weight: 700; }
+    .badge-ineligible { background: #f8d7da; color: #721c24; }
+    .badge-emergency { background: #dc3545; color: white; }
+    .badge-standard { background: #ffc107; color: #212529; }
+    .badge-kept { background: #d1ecf1; color: #0c5460; }
+    .badge-decoy { background: #fff3cd; color: #856404; }
+
+    /* Layout */
+    .app-layout { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; margin-top: 15px; }
+    @media (max-width: 900px) { .app-layout { grid-template-columns: 1fr; } }
+
+    /* Chat Column */
+    .chat-col { display: flex; flex-direction: column; }
+    .chat-box { height: 560px; border: 1px solid #ccc; border-radius: 8px; padding: 14px; overflow-y: auto; background: #fafafa; display: flex; flex-direction: column; gap: 12px; }
+    .msg { padding: 12px 14px; border-radius: 8px; max-width: 88%; line-height: 1.45; word-wrap: break-word; font-size: 0.95em; }
+    .msg-user { align-self: flex-end; background: #e3f2fd; border-bottom-right-radius: 2px; }
+    .msg-agent { align-self: flex-start; background: #ffffff; border: 1px solid #e0e0e0; border-bottom-left-radius: 2px; }
+    .msg-tool { align-self: center; font-size: 0.82em; color: #555; background: #f1f3f5; border: 1px solid #dee2e6; border-radius: 12px; padding: 4px 10px; }
+    .input-row { display: flex; gap: 8px; margin-top: 10px; }
+    .input-row input { flex: 1; }
+    .quick-prompts { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .quick-btn { font-size: 0.8em; padding: 4px 10px; cursor: pointer; background: #f4f4f4; border: 1px solid #ccc; border-radius: 12px; }
+    .quick-btn:hover { background: #e2e2e2; }
+    pre { white-space: pre-wrap; font-family: inherit; margin: 0; }
+
+    /* Rich UI Dashboard Column */
+    .dashboard-col { display: flex; flex-direction: column; gap: 14px; }
+    .dash-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .dash-card h3 { margin-top: 0; margin-bottom: 10px; font-size: 1.05em; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f0f0f0; padding-bottom: 6px; }
+    .dash-field { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9em; }
+    .dash-field strong { color: #555; }
+    .tag-cloud { display: flex; gap: 4px; flex-wrap: wrap; }
+    
+    /* Evidence & Funds list */
+    .item-list { display: flex; flex-direction: column; gap: 8px; max-height: 230px; overflow-y: auto; margin-top: 6px; }
+    .item-row { border: 1px solid #eee; border-radius: 6px; padding: 8px 10px; background: #fafafa; font-size: 0.86em; }
+    .item-row.excluded { opacity: 0.85; background: #fffdf5; border-left: 3px solid #ffc107; }
+    .item-row.kept { border-left: 3px solid #28a745; }
+    .item-row.eligible { border-left: 3px solid #28a745; background: #f9fff9; }
+    .item-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 3px; }
+    .item-desc { color: #555; margin-bottom: 4px; font-size: 0.92em; }
+    .item-reason { color: #856404; font-size: 0.85em; font-style: italic; }
+
+    /* Modal / Details */
+    details { margin-top: 4px; cursor: pointer; }
+    details summary { font-size: 0.82em; color: #0066cc; }
+  </style>
+</head>
+<body>
+  <div style="display: flex; justify-content: space-between; align-items: baseline;">
+    <div>
+      <h2 style="margin-bottom: 4px;">Stabilization Navigator</h2>
+      <p style="margin-top: 0; color: #666; font-size: 0.9em;">
+        <strong>Housing Stability & Eviction Defense Intake Co-Pilot</strong> · New York City
+      </p>
+    </div>
+    <div>
+      <span class="badge">Metro: New York</span>
+      <span class="badge">Model: gemini-2.5-flash (Vertex AI)</span>
+      <span class="badge">BigQuery VECTOR_SEARCH</span>
+    </div>
+  </div>
+
+  <div class="quick-prompts">
+    <span style="font-size: 0.8em; align-self: center; font-weight: bold;">Quick Cases:</span>
+    <button class="quick-btn" onclick="sendQuickPrompt(1)">1. Marisol Intake (Heat/Mold - Manhattan)</button>
+    <button class="quick-btn" onclick="sendQuickPrompt(2)">2. Add Household ($31k, 3 HH, $3,350 arrears)</button>
+    <button class="quick-btn" onclick="sendQuickPrompt(3)">3. Finalize Stabilization Brief</button>
+    <button class="quick-btn" onclick="sendQuickPrompt(4)">4. Random Case: Bronx Grand Concourse</button>
+    <button class="quick-btn" onclick="sendQuickPrompt(5)">5. Ask: What statutes protect against cold?</button>
+  </div>
+
+  <div class="app-layout">
+    <!-- Left Column: Conversational Experience -->
+    <div class="chat-col">
+      <div class="chat-box" id="chat-box">
+        <div class="msg msg-agent">
+          <strong>Stabilization Navigator</strong><br>
+          Welcome to the intake co-pilot. I can evaluate any New York City residential case in real time.
+          <br><br>
+          Provide your tenant's <strong>100-block address</strong>, <strong>court hearing date</strong>, and <strong>habitability hazards</strong>. I will automatically correlate BigQuery 311 violation records, filter out decoys, calculate relief fund eligibility, and prepare an evidence brief.
+        </div>
+      </div>
+
+      <div class="input-row">
+        <input type="text" id="user-input" placeholder="Type case details or questions (e.g. '1000 Block St Nicholas Ave, hearing Mon at 9:30 AM, radiators freezing')..." onkeydown="if(event.key === 'Enter') sendMessage()" />
+        <button onclick="sendMessage()" id="send-btn">Send</button>
+      </div>
+    </div>
+
+    <!-- Right Column: Rich Case UI & Live Dashboard -->
+    <div class="dashboard-col">
+      <!-- 1. Intake Case Status -->
+      <div class="dash-card">
+        <h3>
+          <span>📌 Intake Case Status</span>
+          <span id="case-badge" class="badge">No Active Case</span>
+        </h3>
+        <div id="case-details">
+          <p style="color: #777; font-size: 0.88em; margin: 0;">Case has not been opened yet. Type tenant intake details to start.</p>
+        </div>
+      </div>
+
+      <!-- 2. Corroborating Evidence -->
+      <div class="dash-card">
+        <h3>
+          <span>🔎 Corroborating Evidence</span>
+          <span id="evidence-counts" class="badge">0 records</span>
+        </h3>
+        <div id="evidence-container">
+          <p style="color: #777; font-size: 0.88em; margin: 0;">Evidence will appear here when habitability search is performed.</p>
+        </div>
+      </div>
+
+      <!-- 3. Emergency Relief Program Match -->
+      <div class="dash-card">
+        <h3>
+          <span>💰 Relief Program Eligibility</span>
+          <span id="funds-count" class="badge">0 programs</span>
+        </h3>
+        <div id="funds-container">
+          <p style="color: #777; font-size: 0.88em; margin: 0;">Fund eligibility is deterministically computed in Python once household facts are provided.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    const sessionId = "session_" + Math.random().toString(36).substring(7);
+
+    const prompts = {
+      1: "Hello! I am a paralegal doing intake for tenant Marisol at 1000 Block St Nicholas Avenue, Manhattan. Court hearing is 2026-11-23T09:30. She has had freezing cold radiators, visible mold around the bathtub, and water leaking through the bathroom wall. Can you open her case and search habitability evidence?",
+      2: "Here are her household facts: household size 3, annual income $31,000, arrears $3,350, and she has an active Housing Court index number and received a written rent demand. Can you update the case and match emergency relief funds?",
+      3: "Please draft an intake memo and finalize her Tenant Stabilization Brief.",
+      4: "Start a new intake: 2500 Block Grand Concourse, Bronx. Hearing date 2026-11-26T10:00. Tenant reports chronic water leaks and dampness causing toxic mold. What evidence exists on this block?",
+      5: "What New York housing statutes provide a defense against nonpayment eviction when the landlord has failed to provide heat?"
+    };
+
+    function sendQuickPrompt(id) {
+      document.getElementById("user-input").value = prompts[id];
+      sendMessage();
+    }
+
+    function appendMessage(text, role, toolCalls = []) {
+      const box = document.getElementById("chat-box");
+
+      if (toolCalls && toolCalls.length > 0) {
+        for (const tc of toolCalls) {
+          const tDiv = document.createElement("div");
+          tDiv.className = "msg-tool";
+          tDiv.textContent = `⚡ Tool invoked: ${tc.tool}(${JSON.stringify(tc.args)})`;
+          box.appendChild(tDiv);
+        }
+      }
+
+      const msgDiv = document.createElement("div");
+      msgDiv.className = `msg msg-${role}`;
+      const name = role === "user" ? "Paralegal / Counselor" : "Stabilization Navigator";
+      msgDiv.innerHTML = `<strong>${name}</strong><br><pre>${escapeHtml(text)}</pre>`;
+      box.appendChild(msgDiv);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function updateDashboardUI(caseState) {
+      if (!caseState) return;
+
+      // 1. Case Status
+      const badge = document.getElementById("case-badge");
+      const details = document.getElementById("case-details");
+      const urgency = caseState.urgency || "standard";
+      badge.textContent = urgency.toUpperCase();
+      badge.className = `badge ${urgency.includes("emergency") ? "badge-emergency" : "badge-standard"}`;
+
+      const hazardsHtml = (caseState.hazards || []).map(h => `<span class="badge">${h}</span>`).join(" ");
+      const hours = caseState.hours_to_hearing ? `${Math.round(caseState.hours_to_hearing)} hrs` : "N/A";
+      const hh = caseState.household || {};
+
+      details.innerHTML = `
+        <div class="dash-field"><strong>Block Address:</strong> <span>${caseState.block_address || "N/A"}</span></div>
+        <div class="dash-field"><strong>Census Tract:</strong> <span><code>${caseState.census_tract_geoid || "Looked up via block"}</code></span></div>
+        <div class="dash-field"><strong>Hearing:</strong> <span>${caseState.hearing_datetime || "N/A"} (in ${hours})</span></div>
+        <div class="dash-field"><strong>Hazards:</strong> <div class="tag-cloud">${hazardsHtml || "None reported"}</div></div>
+        ${hh.annual_income_usd ? `
+          <hr style="margin: 8px 0; border: 0; border-top: 1px dashed #ddd;">
+          <div class="dash-field"><strong>Household Size:</strong> <span>${hh.household_size || 1} people</span></div>
+          <div class="dash-field"><strong>Annual Income:</strong> <span>$${(hh.annual_income_usd || 0).toLocaleString()}</span></div>
+          <div class="dash-field"><strong>Rent Arrears:</strong> <span>$${(hh.arrears_usd || 0).toLocaleString()}</span></div>
+          <div class="dash-field"><strong>Court Index #:</strong> <span>${hh.has_court_index_number ? "✅ Yes" : "❌ No"}</span></div>
+        ` : ""}
+      `;
+
+      // 2. Corroborating Evidence
+      const evCounts = document.getElementById("evidence-counts");
+      const evContainer = document.getElementById("evidence-container");
+      const kept = caseState.evidence || [];
+      const excluded = caseState.exclusions || [];
+      evCounts.textContent = `${kept.length} kept · ${excluded.length} filtered`;
+
+      if (kept.length === 0 && excluded.length === 0) {
+        evContainer.innerHTML = `<p style="color: #777; font-size: 0.88em; margin: 0;">No evidence searched yet.</p>`;
+      } else {
+        let html = `<div class="item-list">`;
+        for (const k of kept) {
+          html += `
+            <div class="item-row kept">
+              <div class="item-header">
+                <span>✅ ${k.request_id} <span class="badge badge-kept">${k.raw_complaint_type || "HPD"}</span></span>
+                <span>${k.meters_from_anchor || 0}m away</span>
+              </div>
+              <div class="item-desc">${escapeHtml(k.complaint_narrative || "")}</div>
+              <details>
+                <summary>View verification details (similarity: ${k.similarity || "N/A"})</summary>
+                <p style="font-size: 0.85em; margin: 4px 0;"><strong>Status:</strong> ${k.inspection_status || "Open"} | <strong>Property:</strong> ${k.property_type || "Residential"} | <strong>Created:</strong> ${k.created_date || "N/A"}</p>
+              </details>
+            </div>
+          `;
+        }
+        for (const ex of excluded.slice(0, 4)) {
+          html += `
+            <div class="item-row excluded">
+              <div class="item-header">
+                <span>🚫 ${ex.request_id}</span>
+                <span class="badge badge-decoy">EXCLUDED</span>
+              </div>
+              <div class="item-reason">Reason: ${escapeHtml(ex.excluded_because || "")}</div>
+              <details>
+                <summary>Inspect filtered record (${ex.property_type || "N/A"}, ${ex.meters_from_anchor || 0}m)</summary>
+                <p style="font-size: 0.85em; margin: 4px 0;">${escapeHtml(ex.complaint_narrative || "")}</p>
+              </details>
+            </div>
+          `;
+        }
+        html += `</div>`;
+        evContainer.innerHTML = html;
+      }
+
+      // 3. Relief Funds
+      const fundsCount = document.getElementById("funds-count");
+      const fundsContainer = document.getElementById("funds-container");
+      const funds = caseState.funds || [];
+      fundsCount.textContent = `${funds.filter(f => f.status === "ELIGIBLE").length} eligible`;
+
+      if (funds.length === 0) {
+        fundsContainer.innerHTML = `<p style="color: #777; font-size: 0.88em; margin: 0;">Fund matching will run after household facts are provided.</p>`;
+      } else {
+        let fHtml = `<div class="item-list">`;
+        for (const f of funds) {
+          const isEligible = f.status === "ELIGIBLE";
+          fHtml += `
+            <div class="item-row ${isEligible ? 'eligible' : ''}">
+              <div class="item-header">
+                <span>${isEligible ? '🟢' : '⚪'} ${escapeHtml(f.program_name)}</span>
+                <span class="badge ${isEligible ? 'badge-eligible' : 'badge-ineligible'}">${f.status}</span>
+              </div>
+              <div class="item-desc"><strong>Agency:</strong> ${escapeHtml(f.administering_agency || "")} · <strong>Max:</strong> $${(f.max_award_usd || 0).toLocaleString()}</div>
+              <details>
+                <summary>View deterministic eligibility checklist (${f.checks?.length || 0} rules)</summary>
+                <ul style="margin: 4px 0 0 16px; padding: 0; font-size: 0.85em;">
+                  ${(f.checks || []).map(c => `<li>${c.pass ? '✅' : '❌'} <strong>${escapeHtml(c.rule)}</strong>: ${escapeHtml(c.detail)}</li>`).join("")}
+                </ul>
+                ${f.intake_url ? `<p style="margin: 4px 0 0 0; font-size: 0.85em;"><a href="${f.intake_url}" target="_blank" rel="noopener">🌐 Visit Program Intake Portal</a></p>` : ""}
+              </details>
+            </div>
+          `;
+        }
+        fHtml += `</div>`;
+        fundsContainer.innerHTML = fHtml;
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("user-input");
+      const btn = document.getElementById("send-btn");
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = "";
+      input.disabled = true;
+      btn.disabled = true;
+
+      appendMessage(text, "user");
+
+      try {
+        const res = await fetch(`${API_BASE}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: sessionId,
+            message: text
+          })
+        });
+        const data = await res.json();
+        appendMessage(data.reply, "agent", data.tool_calls);
+        if (data.case_state) {
+          updateDashboardUI(data.case_state);
+        }
+      } catch (err) {
+        appendMessage("Error communicating with server: " + err.message, "agent");
+      } finally {
+        input.disabled = false;
+        btn.disabled = false;
+        input.focus();
+      }
+    }
+  </script>
+</body>
+</html>

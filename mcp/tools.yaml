@@ -1,0 +1,52 @@
+sources:
+  a4i-bq:
+    kind: bigquery
+    project: ${GOOGLE_CLOUD_PROJECT}
+    location: US
+
+tools:
+  get_tract_context:
+    kind: bigquery-sql
+    source: a4i-bq
+    description: >
+      Neighborhood context for one census tract: severe rent burden, MODELED annual eviction
+      filings (pre-aggregated across 4 quarters, no fan-out), open residential 311 count,
+      poverty and vehicle access. GEOID is an 11-character string.
+    parameters:
+      - name: census_tract_geoid
+        type: string
+        description: 11-character census tract GEOID, e.g. "36061024500"
+    statement: |
+      SELECT t.*, b.metro_severe_rent_burden_pct, b.median_tract_nonpayment_filings_modeled
+      FROM `a4i_housing.v_tract_context` t CROSS JOIN `a4i_housing.v_metro_baseline` b
+      WHERE t.census_tract_geoid = @census_tract_geoid
+
+  find_tract_for_block:
+    kind: bigquery-sql
+    source: a4i-bq
+    description: Resolve a 100-block address fragment to its census tract GEOID(s).
+    parameters:
+      - name: block_fragment
+        type: string
+        description: e.g. "1000 Block St Nicholas"
+    statement: |
+      SELECT DISTINCT block_address, census_tract_geoid
+      FROM `a4i_housing.municipal_311_housing_complaints`
+      WHERE LOWER(block_address) LIKE CONCAT('%', LOWER(@block_fragment), '%')
+        AND request_id NOT LIKE 'DECOY-%'
+      LIMIT 5
+
+  list_relief_programs:
+    kind: bigquery-sql
+    source: a4i-bq
+    description: List this metro's emergency rental relief programs and their structured flags.
+    statement: |
+      SELECT bulletin_id, program_name, administering_agency, requires_open_habitability_case,
+             residential_tenants_only, intake_url, effective_date
+      FROM `a4i_housing.rental_relief_program_bulletins`
+
+toolsets:
+  navigator:
+    - get_tract_context
+    - find_tract_for_block
+    - list_relief_programs
