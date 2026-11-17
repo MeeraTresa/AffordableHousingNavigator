@@ -1,55 +1,80 @@
-from unittest.mock import MagicMock
+import pytest
 from agent.navigator.tools.case_file import open_case, update_case
 from agent.navigator.tools.funds import match_relief_funds
 
-def test_marisol_eligibility():
-    # Marisol fixture: Household 3, income $31,000, arrears $3,350, has court index number, 3 open evidence records
-    ctx = MagicMock()
-    ctx.state = {}
+class MockToolContext:
+    def __init__(self):
+        self.state = {}
+
+def test_marisol_relief_eligibility_with_evidence():
+    """Marisol fixture from §8.6:
+    household 3, $31,000, arrears $3,350, index number = yes, 3 open records.
+    Expected: all 4 programs ELIGIBLE (BUL-NY-01, BUL-NY-02, BUL-NY-03, BUL-NY-04).
+    """
+    tc = MockToolContext()
     open_case(
-        block_address="1000 Block St Nicholas Avenue",
+        block_address="1000 Block St Nicholas Avenue, Manhattan",
         hearing_datetime="2026-11-23T09:30",
-        hazards=["no heat", "mold around tub", "water leak through wall"],
-        tenant_narrative="Radiators cold since November, visible mold around tub, leak in bathroom wall",
-        tool_context=ctx,
-        census_tract_geoid="36061024500"
+        hazards=["no heat", "black mold around bathtub", "water leak at bathroom wall"],
+        tenant_narrative="Tenant with young child and elderly mother, radiators cold, ceiling mold, arrears $3,350.",
+        tool_context=tc,
+        census_tract_geoid="36061024500",
     )
     update_case(
-        tool_context=ctx,
+        tool_context=tc,
         household_size=3,
         annual_income_usd=31000.0,
         arrears_usd=3350.0,
         has_court_index_number=True,
-        received_written_rent_demand=True
+        received_written_rent_demand=True,
     )
-    # Mock kept evidence
-    ctx.state["case"]["evidence"] = [
-        {"request_id": "NYC-19346259"},
-        {"request_id": "NYC-19346354"},
-        {"request_id": "NYC-19346353"}
+    # Simulate 3 open corroborating habitability records
+    tc.state["case"]["evidence"] = [
+        {"request_id": "NYC-19346259", "inspection_status": "Open", "property_type": "Residential"},
+        {"request_id": "NYC-19346354", "inspection_status": "Open", "property_type": "Residential"},
+        {"request_id": "NYC-19346353", "inspection_status": "Open", "property_type": "Residential"},
     ]
 
-    res = match_relief_funds(ctx)
-    funds = {f["bulletin_id"]: f["status"] for f in res["funds"]}
-    print("Marisol fund verdicts with evidence:", funds)
+    res = match_relief_funds(tool_context=tc)
+    funds = res["funds"]
+    assert len(funds) == 4, f"Expected 4 relief funds, got {len(funds)}"
 
-    assert funds["BUL-NY-01"] == "ELIGIBLE"  # One Shot Deal
-    assert funds["BUL-NY-02"] == "ELIGIBLE"  # Right to Counsel & Class C
-    assert funds["BUL-NY-03"] == "ELIGIBLE"  # CityFHEPS
-    assert funds["BUL-NY-04"] == "ELIGIBLE"  # ERP clinic
+    fund_map = {f["bulletin_id"]: f["status"] for f in funds}
+    assert fund_map.get("BUL-NY-01") == "ELIGIBLE", f"BUL-NY-01 should be ELIGIBLE, got {fund_map.get('BUL-NY-01')}"
+    assert fund_map.get("BUL-NY-02") == "ELIGIBLE", f"BUL-NY-02 should be ELIGIBLE, got {fund_map.get('BUL-NY-02')}"
+    assert fund_map.get("BUL-NY-03") == "ELIGIBLE", f"BUL-NY-03 should be ELIGIBLE, got {fund_map.get('BUL-NY-03')}"
+    assert fund_map.get("BUL-NY-04") == "ELIGIBLE", f"BUL-NY-04 should be ELIGIBLE, got {fund_map.get('BUL-NY-04')}"
 
-    # Under-reporting fallback: no open evidence records
-    ctx.state["case"]["evidence"] = []
-    res_no_ev = match_relief_funds(ctx)
-    funds_no_ev = {f["bulletin_id"]: f["status"] for f in res_no_ev["funds"]}
-    print("Verdicts with 0 evidence:", funds_no_ev)
+def test_marisol_relief_underreporting_fallback_no_evidence():
+    """Under-reporting fallback (§8.6 twist):
+    With evidence = [] (no open record corroboration),
+    BUL-NY-02 and BUL-NY-04 flip to INELIGIBLE,
+    while BUL-NY-01 and BUL-NY-03 remain ELIGIBLE.
+    """
+    tc = MockToolContext()
+    open_case(
+        block_address="1000 Block St Nicholas Avenue, Manhattan",
+        hearing_datetime="2026-11-23T09:30",
+        hazards=["no heat", "black mold around bathtub"],
+        tenant_narrative="Tenant reports cold radiators, no 311 complaints filed yet.",
+        tool_context=tc,
+        census_tract_geoid="36061024500",
+    )
+    update_case(
+        tool_context=tc,
+        household_size=3,
+        annual_income_usd=31000.0,
+        arrears_usd=3350.0,
+        has_court_index_number=True,
+        received_written_rent_demand=True,
+    )
+    tc.state["case"]["evidence"] = []  # No corroborating open 311 records
 
-    assert funds_no_ev["BUL-NY-01"] == "ELIGIBLE"
-    assert funds_no_ev["BUL-NY-02"] == "INELIGIBLE"  # requires open habitability case
-    assert funds_no_ev["BUL-NY-03"] == "ELIGIBLE"
-    assert funds_no_ev["BUL-NY-04"] == "INELIGIBLE"  # requires open habitability case
+    res = match_relief_funds(tool_context=tc)
+    funds = res["funds"]
+    fund_map = {f["bulletin_id"]: f["status"] for f in funds}
 
-    print("test_marisol_eligibility PASSED!")
-
-if __name__ == "__main__":
-    test_marisol_eligibility()
+    assert fund_map.get("BUL-NY-01") == "ELIGIBLE", "BUL-NY-01 should remain ELIGIBLE"
+    assert fund_map.get("BUL-NY-03") == "ELIGIBLE", "BUL-NY-03 should remain ELIGIBLE"
+    assert fund_map.get("BUL-NY-02") == "INELIGIBLE", "BUL-NY-02 requires open habitability case"
+    assert fund_map.get("BUL-NY-04") == "INELIGIBLE", "BUL-NY-04 requires open habitability case"

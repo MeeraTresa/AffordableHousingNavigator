@@ -19,8 +19,8 @@ hits AS (
                         endpoint => 'gemini-embedding-2').result AS query_vec
        FROM UNNEST(@queries) AS q),
     query_column_to_search => 'query_vec',
-    distance_type => 'COSINE',
     top_k => 20,
+    distance_type => 'COSINE',
     options => '{"use_brute_force":true}'
   )
 )

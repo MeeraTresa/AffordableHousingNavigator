@@ -1,0 +1,11 @@
+Project ID: qwiklabs-gcp-03-ee26737d3114
+Connection ID: us.a4i-vertex
+Service Account: bqcx-530357188502-f8rl@gcp-sa-bigquery-condel.iam.gserviceaccount.com
+IAM Binding: roles/aiplatform.user confirmed active
+
+Smoke query: SELECT AI.EMBED('test', connection_id => 'us.a4i-vertex', endpoint => 'gemini-embedding-2').status AS status
++--------+
+| status |
++--------+
+|        |
++--------+

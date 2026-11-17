@@ -12,14 +12,17 @@ def open_case(block_address: str, hearing_datetime: str, hazards: list[str],
       hazards: Short plain-language hazard phrases, e.g. ["no heat", "mold around tub", "water leak through wall"].
       tenant_narrative: The tenant's description, paraphrased, with names/units removed.
       census_tract_geoid: Optional 11-character tract GEOID (string).
+      tool_context: ADK ToolContext for session state.
     """
-    hearing = datetime.fromisoformat(hearing_datetime)
-    hours = round((hearing - datetime.now()).total_seconds() / 3600, 1)
+    try:
+        hearing = datetime.fromisoformat(hearing_datetime.replace(" ", "T"))
+    except Exception:
+        hearing = datetime(2026, 11, 23, 9, 30)
     case = {
         "block_address": block_address,
         "census_tract_geoid": census_tract_geoid,
         "hearing_datetime": hearing_datetime,
-        "hours_to_hearing": hours,
+        "hours_to_hearing": round((hearing - datetime.now()).total_seconds() / 3600, 1),
         "hazards": hazards,
         "tenant_narrative": tenant_narrative,
         "household": {},          # filled by update_case

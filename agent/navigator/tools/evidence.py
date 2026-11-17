@@ -2,12 +2,13 @@ import os
 from google.cloud import bigquery
 from google.adk.tools import ToolContext
 from ..bq import run_query
-from ..config import PROXIMITY_METERS, MIN_SIMILARITY, EXCLUSION_REASONS
+from ..config import DATASET, PROXIMITY_METERS, MIN_SIMILARITY, EXCLUSION_REASONS
 
 _SQL_PATH = os.path.join(os.path.dirname(__file__), "search.sql")
 with open(_SQL_PATH) as f:
     SEARCH_SQL = f.read()
 
+# Plain-language → inspector-language query expansion (helps recall; vector search does the matching)
 HAZARD_EXPANSIONS = {
     "heat": "no heat in apartment, radiators cold, boiler not working, heating system inaccessible",
     "hot water": "no hot water at fixtures, hot water outage",
@@ -27,6 +28,8 @@ def _expand(hazards: list[str]) -> list[str]:
 
 def _classify(row: dict) -> str | None:
     """Return an exclusion key, or None if the record is admissible corroboration."""
+    # DECOY-* rows are classified by the same real rules as everything else, so the
+    # explanation is substantive ("Closed – Abated"), not just "it's a decoy".
     if row["property_type"] != "Residential":
         return "commercial"
     if row["closed_date"] is not None:
@@ -66,7 +69,8 @@ def search_habitability_evidence(tool_context: ToolContext, hazards: list[str] |
             item["excluded_because"] = EXCLUSION_REASONS[why].format(m=PROXIMITY_METERS)
             if r["request_id"].startswith("DECOY-"):
                 item["excluded_because"] += " " + EXCLUSION_REASONS["planted"]
-            if r["similarity"] >= MIN_SIMILARITY:
+            # surface semantically relevant exclusions (the interesting near-misses) and all decoys
+            if r["similarity"] >= MIN_SIMILARITY or r["request_id"].startswith("DECOY-"):
                 excluded.append(item)
         else:
             kept.append(item)
@@ -82,5 +86,6 @@ def search_habitability_evidence(tool_context: ToolContext, hazards: list[str] |
             "evidence_scope": "100-block public record — corroborates block conditions, not the tenant's unit."}
 
 def _block_core(block: str) -> str:
+    # "1000 Block St Nicholas Avenue, Manhattan" -> "1000 block st nicholas"
     b = block.lower().replace("ave.", "avenue").split(",")[0]
     return " ".join(b.split()[:4])

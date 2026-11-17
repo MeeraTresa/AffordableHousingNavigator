@@ -8,6 +8,8 @@ FROM (
 ) AS s
 WHERE embedded.status = '';
 
+SELECT COUNT(*) AS statutes_count FROM `a4i_housing.statutes_embedded`;
+
 CREATE OR REPLACE TABLE `a4i_housing.bulletins_embedded` AS
 SELECT b.* EXCEPT(embedded), embedded.result AS embedding
 FROM (
@@ -18,6 +20,4 @@ FROM (
 ) AS b
 WHERE embedded.status = '';
 
-SELECT 'statutes' AS tbl, COUNT(*) AS n FROM `a4i_housing.statutes_embedded`
-UNION ALL
-SELECT 'bulletins' AS tbl, COUNT(*) AS n FROM `a4i_housing.bulletins_embedded`;
+SELECT COUNT(*) AS bulletins_count FROM `a4i_housing.bulletins_embedded`;

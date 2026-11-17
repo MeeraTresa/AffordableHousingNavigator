@@ -1,87 +1,105 @@
-# Stabilization Navigator: 10-Slide Pitch Deck Outline
-**Challenge 02 · Affordable Housing Stability & Eviction Prevention Navigator**
+# Stabilization Navigator: Pitch Deck Outline (10 Slides)
+
+**Team:** Squad 7 · Agents for Impact 2026  
+**Corridor:** New York City Metro (`a4i_housing`)  
+**Track:** Intake Triage & Emergency Relief Matching  
 
 ---
 
-### Slide 1: Title & Hook
-- **Title:** Stabilization Navigator: An AI Co-Pilot for Housing Intake
-- **Subtitle:** Turning 100-Block Municipal Code Violations into Imminent Eviction Defenses
-- **Hook:** "Thursday, 3:40 pm. Marisol owes $3,350 and faces a Monday morning eviction hearing. Her radiators have been cold for 18 days. The city has it on record. Her court docket doesn't."
+### Slide 1: Marisol's Monday
+- **Headline:** Thursday, 3:40 PM: Court is Monday at 9:30 AM.
+- **Bullets:**
+  - Marisol arrives at a legal-aid clinic with a 3-day nonpayment eviction notice for $3,350 in arrears.
+  - Her radiators have been stone-cold since early November; toxic black mold surrounds the bathtub and water leaks near the fuse box.
+  - The city's housing agency *already inspected and knows* about these hazards, but her court file contains zero evidence.
+- **Visual:** Simple split intake card showing Marisol's emergency notice next to a countdown clock ("89 hours to hearing").
 
 ---
 
-### Slide 2: The Administrative Silo Problem
-- Housing court nonpayment cases move in days; code enforcement operates in weeks.
-- Families with documented uninhabitable living conditions (no heat, toxic mold, raw sewage) face eviction without their habitability rights because courts and code-enforcement databases never talk.
-- Paralegals have ~20 minutes per intake and 11 families waiting.
+### Slide 2: The Silo Problem
+- **Headline:** A Corroboration & Triage Crisis Under a Running Clock
+- **Bullets:**
+  - Tenants routinely forfeit non-waivable statutory defenses and $15,000+ stabilization grants in 5-minute hallway settlements.
+  - Right-to-counsel clinics have waiting rooms full of families and minutes per intake to find corroborating public records.
+  - Municipal 311/HPD records, court dockets, and emergency funding guidelines sit in disconnected operational silos.
+- **Visual:** Diagram of three disconnected silos (Courthouse Docket, 311 Municipal Database, Emergency Relief Guidelines) failing to talk before Monday morning.
 
 ---
 
-### Slide 3: Rigor & Judgment — Why New York?
-- **6-Metro Data Audit:** Before writing code, we analyzed open habitability complaints across all 6 challenge metros:
-  - *Austin & Cincinnati:* 0 open habitability narratives (mostly trash / tall grass).
-  - *New York:* 165 open complaints with 63 serious HPD Class A/B/C habitability violations and 25.2% metro severe rent burden.
-- We chose New York because its municipal records actually contain the facts needed to corroborate legal defenses.
+### Slide 3: Metro Choice & 6-Metro Data Audit
+- **Headline:** Selecting New York: The Only Metro with Scale in Open 311 Habitability
+- **Bullets:**
+  - Audited all 6 challenge metros: Baton Rouge carries 27.2% severe rent burden but only 10 open residential 311s; SF has 140 open 311s across 42 tracts.
+  - New York corridor provides 168 census tracts, 437,111 renter households (25.2% severe burden), and 165 open residential 311 complaints.
+  - Demonstrates why open-311 triage rules alone risk penalizing "silent distress" tracts where tenants fear calling city inspectors.
+- **Visual:** Data audit comparison table highlighting New York, San Francisco, Chicago, Austin, Baton Rouge, and Cincinnati metrics.
 
 ---
 
-### Slide 4: Track & Solution Scope
-- **Track:** ⚖️ *Today at intake* combined with *🛟 emergency relief fund matching*.
-- **Role:** An active intake co-pilot for paralegals and housing counselors (not a passive dashboard or basic query box).
-- Generates a **Tenant Stabilization Brief** under 5 minutes before Monday court.
+### Slide 4: Track Selection: Intake Triage & Relief Matching
+- **Headline:** Connecting Public Building-Code Files to Emergency Defense Before Trial
+- **Bullets:**
+  - **Input:** Tenant's everyday natural-language crisis narrative and 100-block location.
+  - **Engine:** Semantic vector candidate generation, hard relational filtering (rejecting commercial and abated decoys), and deterministic rules engine.
+  - **Output:** Actionable Tenant Stabilization Brief pairing corroborating 311 evidence, statutory defenses, and $42,500 in matched relief capacity.
+- **Visual:** Input-to-Output pipeline card: Citizen Intake &rarr; Stabilization Navigator &rarr; Attorney Brief.
 
 ---
 
 ### Slide 5: System Architecture
-- **Agent Framework:** Google ADK with Gemini (`gemini-2.5-flash`).
-- **Semantic Candidate Generator:** BigQuery `VECTOR_SEARCH` with `AI.EMBED` (`gemini-embedding-2`) using brute force cosine similarity.
-- **Domain Layer:** Deterministic Python tools for decoy filtering, statutory analysis, and fund qualification.
-- **Enterprise Integration:** Google-managed MCP Toolbox for Databases on Cloud Run for parameterized neighborhood SQL lookups.
+- **Headline:** Enterprise-Grade Civic AI on Google Cloud
+- **Bullets:**
+  - **ADK & Gemini 2.5 Flash:** Agent runtime managing multi-turn case state and structured reasoning.
+  - **BigQuery Vector Search:** `gemini-embedding-2` generating 768-dim embeddings with brute-force cosine distance (`ML.DISTANCE`).
+  - **Cloud Run MCP Toolbox:** Parameterized, fan-out-safe SQL tools deployed with `--min-instances=1` to eliminate cold starts.
+- **Visual:** Complete architectural flow diagram (Frontend &rarr; ADK Cloud Run &rarr; MCP Toolbox &rarr; BigQuery `a4i_housing`).
 
 ---
 
-### Slide 6: Vector Search vs. Fragile Keywords (Decoy Defense)
-- **The Gap:** Tenants say *"radiators are freezing"*; inspectors write *"§ 27-2031 PROVIDE READY ACCESS TO HEATING SYSTEM"*. Semantic search bridges this vocabulary gap.
-- **The Differentiator:** Vector search is only a candidate generator, not the verdict.
-- **Planted Decoy Defense:** All 9 planted decoys (`DECOY-*`) are rejected by deterministic post-filters with clear explanations:
-  - Dropping commercial storefronts (`DECOY-NEWY-01`).
-  - Dropping closed/abated repairs (`DECOY-NEWY-04`).
-  - Dropping "no violation found" decoys (`DECOY-NEWY-07`).
+### Slide 6: Vector Search vs. Keywords: Catching the Decoys
+- **Headline:** Semantic Retrieval Generates Candidates; Hard Relational Rules Decide
+- **Bullets:**
+  - Citizen phrasing ("radiators stone cold") never matches statutory codes ("HPD Class C heating system access").
+  - Keyword search retrieves dangerous traps; raw vector similarity ranked a closed boiler repair (`DECOY-NEWY-04`, sim 0.80) #1.
+  - Our relational post-filter (`property_type = 'Residential' AND closed_date IS NULL`) caught 9/9 planted decoys with human-readable rationale.
+- **Visual:** Side-by-side screenshot showing Raw Top-5 candidates with Decoys highlighted vs. Kept Evidence cards in green and Excluded Decoys in grey.
 
 ---
 
 ### Slide 7: Deterministic Eligibility Engine
-- **LLM explains, Python decides:** No hallucinated approvals.
-- Evaluates income against HHS Federal Poverty Levels (FPL) and program caps.
-- Matches requirements for NYC programs:
-  - *Right to Counsel (Local Law 136)*: ≤200% FPL + open HPD habitability violation.
-  - *HRA One Shot Deal*: Emergency arrears clearance up to $15,000.
-  - *Emergency Repair Program (ERP) Clinic*: Open heat/mold violations up to $5,500.
-  - *CityFHEPS Prevention*: Court index number + rent arrears.
+- **Headline:** Code Computes Eligibility; Gemini Explains the Verdicts
+- **Bullets:**
+  - LLMs hallucinate income limits and guideline thresholds; Python rules (`tools/funds.py`) evaluate pass/fail with absolute precision.
+  - Marisol's household (3 people, $31,000 income, court index number, 3 open HPD violations) evaluated against 4 NYC stabilization programs.
+  - 4× ELIGIBLE verdicts produced: Right to Counsel ($4k), ERP Clinic ($5.5k), HRA One Shot Deal ($15k), and CityFHEPS Arrears ($18k).
+- **Visual:** Relief Funds UI tab displaying pass/fail checkmarks (✅/❌) and max award amounts.
 
 ---
 
 ### Slide 8: Post-Output Equity Audit
-- **Auditing Our Own Rules:** Does requiring an open 311 record penalize high-burden communities?
-- **Empirical Findings across 168 NYC Tracts:**
-  - Group A (Prioritized by 311 rule): 38 tracts, 29,117 severely rent-burdened households.
-  - Group B ("Silent Distress"): **37 tracts holding 33,980 severely rent-burdened households** that would be completely missed by an open-311 requirement.
-- **Our Policy Adaptation:** Cases in silent distress tracts without 311 records are automatically routed to the proactive inspection-request pathway and to funds that do not require an open code violation. We flag these tracts for mobile intake (74.9% no-vehicle rate).
+- **Headline:** Uncovering Silent Distress: Auditing Our Own Triage Policy
+- **Bullets:**
+  - Isolated `audit_*` demographic columns completely from retrieval and ranking; audited across all 168 New York tracts.
+  - **Finding:** An open-311-only rule would skip **37** tracts holding **33,980** severely rent-burdened households with **74.9%** zero-vehicle rates.
+  - **Policy Mitigation:** Navigator routes uncorroborated cases to emergency inspection intake and general relief funds (One Shot Deal) rather than denying aid.
+- **Visual:** Table of Groups A, B (Silent Distress), and C with tract counts, severely burdened households, and vehicle access rates from `docs/equity_audit_results.md`.
 
 ---
 
-### Slide 9: Honest Data & The Evidentiary Boundary
-- **Clear Data Labeling:**
-  - `Real`: ACS housing tenure and 311 complaint narratives.
-  - `[Modeled]`: Court eviction filings (aggregated 4 quarters/tract to avoid 4× fan-out).
-  - `[Planted Case]`: Decoy records labeled transparently.
-- **The Evidentiary Boundary:** The public record is 100-block redacted; it proves neighborhood/building cluster conditions, not the tenant's individual apartment. The brief tells the attorney exactly what must still be proven.
+### Slide 9: Honest Data Provenance & Real-World Boundaries
+- **Headline:** Knowing What the City Record Cannot Prove
+- **Bullets:**
+  - **Data Provenance:** ACS housing tenure and 311 complaints are real public records; court eviction filings are explicitly labeled `[Modeled]`.
+  - **Evidentiary Limits:** 100-block records corroborate block/cluster conditions, not interior apartment leases or unit inspections.
+  - **Live Controversy:** When landlord counsel claims the boiler was repaired last week, the navigator flags that snapshot data cannot verify recent repairs and petitions for an HPD re-inspection.
+- **Visual:** Evidentiary boundary card illustrating the boundary between public municipal records and tenant unit leasehold facts.
 
 ---
 
-### Slide 10: Immediate Impact & Next Steps
-- **In Dev's Hand:** A comprehensive Tenant Stabilization Brief with corroborating evidence, statutory citations (RPL § 235-b, Admin Code § 27-2115), eligible relief funds, and an intake memo.
-- **Next Steps:**
-  - Real-time integration with live NYC HPD Open Data API.
-  - Mobile proactive intake routing for high-burden silent distress corridors.
-  - Automated tenant inspection-request agent.
+### Slide 10: Future Roadmap & Impact
+- **Headline:** From Thursday Intake to Sustainable Housing Stability
+- **Bullets:**
+  - **Automated 311 Inspection Drafter:** Secondary agent to interview tenants and auto-submit structured municipal code complaints with photo checklists.
+  - **Dynamic Transit Routing:** Integration with GTFS subway/bus schedules to guarantee tenants reach 111 Centre Street before 9:30 AM default call.
+  - **Multi-Jurisdiction Expansion:** Portable architecture ready for Chicago, San Francisco, Austin, and Cincinnati corridor data.
+- **Visual:** Product vision mockup showing mobile intake checklist and Google Maps transit routing card.

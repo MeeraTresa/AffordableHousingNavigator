@@ -1,44 +1,48 @@
 import pytest
-from unittest.mock import MagicMock
 from agent.navigator.tools.case_file import open_case
 from agent.navigator.tools.evidence import search_habitability_evidence
 
-PHRASINGS = [
+class MockToolContext:
+    def __init__(self):
+        self.state = {}
+
+HAZARD_TEST_CASES = [
     ["no heat", "radiators cold"],
-    ["black mold around bathtub", "mold"],
+    ["black mold around bathtub"],
     ["water leak through bathroom wall"],
-    ["boiler not working"],
-    ["raw sewage backup in bathroom"],
-    ["electrical hazard, sparking outlet near water"],
-    ["freezing cold apartment, no heat"],
-    ["ceiling leak and peeling paint"],
-    ["toxic mold and dampness"],
-    ["no hot water, boiler locked"],
+    ["broken boiler no hot water"],
+    ["sewage backup in toilet"],
+    ["defective electrical outlet exposed wiring"],
+    ["roaches and mice rodent infestation"],
+    ["ceiling collapse water damage"],
+    ["freezing apartment heating system broken"],
+    ["leaking pipe mold growth"],
 ]
 
-@pytest.mark.parametrize("hazards", PHRASINGS)
-def test_decoys_never_kept(hazards):
-    context = MagicMock()
-    context.state = {}
+@pytest.mark.parametrize("hazards", HAZARD_TEST_CASES)
+def test_no_decoys_kept_and_all_excluded_explained(hazards):
+    tc = MockToolContext()
     open_case(
-        block_address="1000 Block St Nicholas Avenue",
+        block_address="1000 Block St Nicholas Avenue, Manhattan",
         hearing_datetime="2026-11-23T09:30",
         hazards=hazards,
-        tenant_narrative="Tenant experiencing severe habitability issues",
-        tool_context=context,
-        census_tract_geoid="36061024500"
+        tenant_narrative="Tenant reports severe conditions.",
+        tool_context=tc,
     )
-    result = search_habitability_evidence(context, hazards=hazards)
+    result = search_habitability_evidence(tool_context=tc)
+    
     kept = result["kept"]
     excluded = result["excluded"]
-
-    # Assert no DECOY-* appears in kept
+    
+    # 1. Assert no DECOY-* id is ever in kept
     for item in kept:
-        assert not item["request_id"].startswith("DECOY-"), f"Decoy leaked into kept: {item['request_id']}"
-
-    # Assert every DECOY in excluded has an excluded_because reason
+        assert not item["request_id"].startswith("DECOY-"), (
+            f"Planted decoy {item['request_id']} was admitted into kept evidence for hazards {hazards}!"
+        )
+    
+    # 2. Assert every DECOY-* in excluded has an excluded_because reason explaining why
     for item in excluded:
         if item["request_id"].startswith("DECOY-"):
-            assert "excluded_because" in item
-            assert len(item["excluded_because"]) > 0
-            assert "[Planted Case]" in item["excluded_because"]
+            assert "excluded_because" in item, f"Decoy {item['request_id']} missing excluded_because"
+            assert len(item["excluded_because"]) > 0, f"Decoy {item['request_id']} has empty excluded_because"
+            assert "[Planted Case]" in item["excluded_because"], f"Decoy {item['request_id']} missing [Planted Case] tag"

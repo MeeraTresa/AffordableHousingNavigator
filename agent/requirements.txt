@@ -1,4 +1,11 @@
+<<<<<<< HEAD
 google-adk>=2.2.0
 google-cloud-bigquery>=3.25
 google-cloud-aiplatform>=1.165
 google-auth>=2.30
+=======
+google-adk>=1.0
+google-cloud-bigquery>=3.25
+google-auth>=2.30
+pytest
+>>>>>>> origin/main

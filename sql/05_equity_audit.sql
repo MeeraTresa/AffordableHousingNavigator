@@ -1,3 +1,7 @@
+-- Section 12.2 Batch Equity Audit
+-- Evaluates whether requiring an open 311 record penalizes high-burden "silent distress" tracts.
+-- Only permitted in sql/05_equity_audit.sql, scripts/run_equity_audit.py, and agent/navigator/equity.py.
+
 WITH t AS (SELECT * FROM `a4i_housing.v_tract_context`),
 policy AS (
   SELECT census_tract_geoid,

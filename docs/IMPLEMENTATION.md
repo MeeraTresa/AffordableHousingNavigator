@@ -1,34 +1,323 @@
-# Stabilization Navigator — Implementation Guide
+# Stabilization Navigator — Antigravity Build Playbook
 
-**Agents for Impact 2026 · Challenge 02 · Affordable Housing Stability**
+**Agents for Impact 2026 · Challenge 02 · Affordable Housing Stability · Squad 7**
 
-> **Audience:** our team *and* Antigravity (IDE or `agy` CLI). Every section is written so a coding agent can execute it top to bottom. Section 14 has copy-paste prompts for each lane.
+> **Operating model: Antigravity builds everything. Humans decide, approve and verify.**
+> No teammate writes production code by hand. Each lane drives its own Antigravity session through numbered **missions** (M00–M13). Each mission is a ready-made prompt, also saved as a slash-command workflow in `.agent/workflows/`. People do three things: pick the mission, approve the risky steps (IAM, deploys), and check the "done when" proof.
 >
-> **Decisions locked:** Metro = **New York**. Track = **⚖️ Today at intake**, with **🛟 relief-fund matching** folded into the same conversation (the README allows "combine two").
+> **Decisions locked:** Metro = **New York** · Track = **⚖️ Today at intake** + **🛟 relief-fund matching** · Constraint = **BigQuery Vector Search** (`AI.EMBED` + `VECTOR_SEARCH`, then filter closed / commercial / "no violation found" decoys).
 
 ---
 
 ## Contents
 
-1. [Why New York (a data finding, not a preference)](#1-why-new-york)
-2. [The story: Marisol's Monday](#2-the-story-marisols-monday)
-3. [The demo conversation (golden path)](#3-the-demo-conversation-golden-path)
-4. [Architecture](#4-architecture)
-5. [Repository layout](#5-repository-layout)
-6. [Phase 0: Load data and build embeddings](#6-phase-0-load-data-and-build-embeddings)
-7. [BigQuery SQL artifacts](#7-bigquery-sql-artifacts)
-8. [Custom tools (Python), the core of the score](#8-custom-tools-python)
-9. [Managed MCP: MCP Toolbox for Databases](#9-managed-mcp-mcp-toolbox-for-databases)
-10. [The ADK agent and system prompt](#10-the-adk-agent-and-system-prompt)
-11. [Tenant Stabilization Brief: output contract](#11-tenant-stabilization-brief-output-contract)
-12. [Equity Audit (post-output only)](#12-equity-audit-post-output-only)
-13. [Deploy, front end, tests](#13-deploy-front-end-tests)
-14. [Antigravity prompts by lane](#14-antigravity-prompts-by-lane)
-15. [4.5-hour timeline](#15-45-hour-timeline)
-16. [Deck and 3-minute video script](#16-deck-and-3-minute-video-script)
-17. [Limitations we state out loud](#17-limitations-we-state-out-loud)
+**Part A — Antigravity playbook (start here)**
+- [A0. Setup: get every lane into Antigravity in 10 minutes](#a0-setup)
+- [A1. How we drive Antigravity](#a1-how-we-drive-antigravity)
+- [A2. Mission map](#a2-mission-map)
+- [A3. Mission cards (prompts, proof, checkpoints)](#a3-mission-cards)
+- [A4. What humans must approve (and what Antigravity must never do)](#a4-what-humans-must-approve)
+- [A5. When Antigravity gets stuck](#a5-when-antigravity-gets-stuck)
+- [A6. Timeline by lane](#a6-timeline-by-lane)
+
+**Part B — Technical spec (what Antigravity implements)**
+1. [Why New York](#1-why-new-york) · 2. [The story: Marisol's Monday](#2-the-story-marisols-monday) · 3. [Golden conversation](#3-the-demo-conversation-golden-path) · 4. [Architecture](#4-architecture) · 5. [Repo layout](#5-repository-layout) · 6. [Data load](#6-phase-0-load-data-and-build-embeddings) · 7. [SQL](#7-bigquery-sql-artifacts) · 8. [Custom tools](#8-custom-tools-python) · 9. [MCP Toolbox](#9-managed-mcp-mcp-toolbox-for-databases) · 10. [ADK agent](#10-the-adk-agent-and-system-prompt) · 11. [Brief contract](#11-tenant-stabilization-brief-output-contract) · 12. [Equity audit](#12-equity-audit-post-output-only) · 13. [Deploy, UI, tests](#13-deploy-front-end-tests) · 16. [Deck & video](#16-deck-and-3-minute-video-script) · 17. [Limitations](#17-limitations-we-state-out-loud)
 
 ---
+
+# Part A — Antigravity playbook
+
+## A0. Setup
+
+Do this once per person. It takes about 10 minutes, and every lane does it in parallel.
+
+1. **Open Antigravity.** Either click the **Antigravity IDE** button in the Google Skills lab environment, or open Cloud Shell (`>_` in the console, attached to the team project) and run `agy`.
+2. **Clone the team repo and branch for your lane**:
+   ```bash
+   git clone https://github.com/<team-repo>.git && cd <repo>
+   git checkout -b data      # or agent, frontend, story
+   ```
+3. **Open the repo as the Antigravity workspace.** In the IDE, use *Open Folder*. With the CLI, run `agy` from the repo root.
+4. **Check that the guardrails loaded.** Ask Antigravity: *"What are the rules in this workspace?"* It should recite `AGENTS.md` (also mirrored in `.agent/rules/navigator-guardrails.md` and pointed to by `GEMINI.md`). If it doesn't, start every session with: *"Read AGENTS.md and docs/IMPLEMENTATION.md first."*
+5. **Check that the workflows are visible.** Type `/` and look for `/m00-bootstrap` … `/m13-rehearsal`. If your Antigravity version doesn't pick up `.agent/workflows/`, paste the prompt from the mission card in A3 instead. The text is identical.
+6. **Set autonomy.** Allow file edits and read-only commands (`bq ls`, `bq query` SELECTs, `pytest`, `git status`). Require approval for `gcloud … iam`, `gcloud run deploy`, `adk deploy`, `bq rm`, `git push --force`, and anything with `delete`. (CLI: `/permissions`; review pending edits with `/diff`.)
+
+## A1. How we drive Antigravity
+
+| Practice | Why |
+|---|---|
+| **One mission per conversation.** Start a fresh agent session per mission and name it after the mission (e.g. "M04 evidence tool"). | Keeps context small and the history readable for judges |
+| **Plan first for big missions** (M04–M09). Ask for an implementation-plan artifact, review it, then let it execute. | Cheap to fix a plan, expensive to fix a deploy |
+| **Make it prove "done".** Every mission ends with a command or test whose output goes into `docs/rigor/`. | That folder *is* our Rigor & judgment score (25 pts) |
+| **Review diffs, don't rewrite.** If code is wrong, reply with what's wrong and let Antigravity fix it. | Keeps "Antigravity did everything" true and fast |
+| **Run lanes in parallel** with separate sessions and separate branches. Merge to `main` when a mission's "done when" is green. | Four lanes, one shared GCP project, no collisions |
+| **Paste errors verbatim.** Traceback in, fix out (see A5). | Faster than debugging by hand |
+| **Use the browser agent for UI and rehearsal** (M09, M13). Let Antigravity click through the deployed app and capture screenshots. | It's the same path the video records |
+| **Prefix shared cloud names with `sq7-`.** Services, buckets and tables beyond the five starter tables. | One project per team, and overwriting is easy |
+
+**Parallel sessions at a glance:**
+
+```
+Data lane      M01 → M02 → M03 ──────────→ M10 → M11
+Agent lane          M04 (after M03) → M05 → M06 → M07 → M08
+Front end      M09 phase 1 (mock) ─────────────→ M09 phase 2 (live, after M08)
+Story          M12 (starts at 0:30, finalizes after M10) ───────────→ M13
+Lead           M00, approvals, merges ─────────────────────────────→ M13
+```
+
+## A2. Mission map
+
+| # | Mission | Lane | Start | Workflow |
+|---|---|---|---|---|
+| **M00** | Bootstrap the workspace | Lead | 0:00 | `/m00-bootstrap` |
+| **M01** | Load New York data and prove it's valid | Data | 0:15 | `/m01-load-data` |
+| **M02** | Create the Vertex AI connection | Data | 0:25 | `/m02-vertex-connection` |
+| **M03** | Build embeddings and fan-out-safe views | Data | 0:35 | `/m03-embeddings-views` |
+| **M04** | Build the evidence search tool and decoy tests | Agent | 0:45 | `/m04-evidence-tool` |
+| **M05** | Build statutes, funds, brief and equity code | Agent | 1:15 | `/m05-rules-tools` |
+| **M06** | Wire the ADK agent and pass the golden conversation locally | Agent | 1:45 | `/m06-agent-local` |
+| **M07** | Deploy MCP Toolbox to Cloud Run | Agent | 2:00 | `/m07-mcp-toolbox` |
+| **M08** | Deploy the agent to Cloud Run | Agent | 2:15 | `/m08-agent-deploy` |
+| **M09** | Build the Intake Desk UI (mock first, then live) | Front end | 1:00 → 2:45 | `/m09-frontend` |
+| **M10** | Run the batch Equity Audit | Data | 1:45 | `/m10-equity-audit` |
+| **M11** | Assemble the rigor evidence pack | Data | 2:45 | `/m11-rigor-pack` |
+| **M12** | Write the deck, video script and submission README | Story | 0:30 → 3:30 | `/m12-story` |
+| **M13** | Dress rehearsal on the deployed app | All | 3:30 | `/m13-rehearsal` |
+
+## A3. Mission cards
+
+Each card = the exact prompt (identical to the workflow file), the proof that it's done, and the moment a human must look.
+
+### M00 · Bootstrap the workspace
+**Lane:** Lead · **Start:** 0:00 · **Run:** `/m00-bootstrap` (or paste the prompt)
+
+```text
+Read AGENTS.md and docs/IMPLEMENTATION.md end to end. Then:
+1. Confirm you can see the guardrails in .agent/rules/ and the workflows in .agent/workflows/. List them.
+2. Run `gcloud config get-value project` and `bq ls` and tell me the project id and whether dataset a4i_housing exists.
+3. Create the empty skeleton from Part B §5 (folders and placeholder files only, no logic), plus agent/.env.example from §10.3.
+4. Produce an implementation-plan artifact that maps missions M01–M13 to files you will touch.
+Do not deploy anything or change IAM in this mission.
+```
+
+- **Done when:** `tree -L 3 agent mcp sql` matches Part B §5; plan artifact is posted to the team channel.
+- **Human checkpoint:** Lead reads the plan Antigravity produces and confirms metro = New York, track = intake + funds.
+
+### M01 · Load New York data and prove it's valid
+**Lane:** Data · **Start:** 0:15 · **Run:** `/m01-load-data` (or paste the prompt)
+
+```text
+Load the New York metro into BigQuery dataset a4i_housing:
+1. Run `bash scripts/load.sh new-york` from the repo root and stream the output.
+2. Run the validation checks equivalent to notebook Section 12 against the loaded tables (write them as sql/00_validate.sql if you need a file). Report PASS/WARN/FAIL per check.
+3. Save the full output to docs/rigor/01_load_validation.txt.
+Stop and show me any FAIL. Never cast census_tract_geoid to a number.
+```
+
+- **Done when:** docs/rigor/01_load_validation.txt shows 174 complaints, 168 tracts, 672 filing rows, 9 decoys, 0 FAIL.
+- **Human checkpoint:** Data lead checks the validation summary shows 0 FAIL before anyone moves on.
+
+### M02 · Create the Vertex AI connection
+**Lane:** Data · **Start:** 0:25 · **Run:** `/m02-vertex-connection` (or paste the prompt)
+
+```text
+Implement sql/01_connection.sh exactly as Part B §6.1 and run it.
+Before running the `gcloud projects add-iam-policy-binding` line, STOP and show me the exact command and service account for approval.
+After it succeeds, wait 60s, then run a one-row smoke test:
+SELECT AI.EMBED('test', connection_id => 'us.a4i-vertex', endpoint => 'gemini-embedding-2').status
+and confirm the status is an empty string.
+```
+
+- **Done when:** Smoke query returns status = '' ; output appended to docs/rigor/02_connection.txt.
+- **Human checkpoint:** A human approves the IAM binding command before Antigravity runs it (Antigravity must pause and ask).
+
+### M03 · Build embeddings and fan-out-safe views
+**Lane:** Data · **Start:** 0:35 · **Run:** `/m03-embeddings-views` (or paste the prompt)
+
+```text
+Create and run, in order: sql/02_embed_complaints.sql, sql/03_embed_rules.sql, sql/04_views.sql (Part B §7.1–7.3).
+After each file run its sanity checks and report row counts.
+Then run the Part B §7.4 search with queries ['no heat radiators cold', 'black mold around tub', 'water leak through bathroom wall'], block_hint '1000 block st nicholas', and show the top 10 RAW rows including DECOY-* rows.
+Save outputs to docs/rigor/03_embeddings.txt. Do not create a VECTOR INDEX.
+```
+
+- **Done when:** complaints_embedded = 174 rows; v_tract_context = 168 rows with quarters_aggregated = 4 everywhere; raw search shows at least one DECOY-* in top 10.
+- **Human checkpoint:** Data lead eyeballs one VECTOR_SEARCH result list and confirms decoys appear in the RAW results (that's the point).
+
+### M04 · Build the evidence search tool and decoy tests
+**Lane:** Agent · **Start:** 0:45 · **Run:** `/m04-evidence-tool` (or paste the prompt)
+
+```text
+Implement agent/navigator/config.py, bq.py, tools/case_file.py, tools/evidence.py and tools/search.sql per Part B §8.1–8.4.
+Use parameterized BigQuery queries only. Then write tests/test_decoys.py (Part B §13.3): 10 hazard phrasings, assert no DECOY-* id is ever in `kept`, and every DECOY-* in the raw top-20 has an `excluded_because`.
+Run the tests against the live dataset and show results. Tune MIN_SIMILARITY only if real NYC hazard records are being dropped; record the final value and why in docs/rigor/04_threshold.md.
+```
+
+- **Done when:** `pytest agent/tests/test_decoys.py` passes against live BigQuery.
+- **Human checkpoint:** Agent lead reviews the diff of evidence.py (/diff) with special attention to the exclusion rules.
+
+### M05 · Build statutes, funds, brief and equity code
+**Lane:** Agent · **Start:** 1:15 · **Run:** `/m05-rules-tools` (or paste the prompt)
+
+```text
+Implement tools/statutes.py, tools/funds.py, tools/brief.py and equity.py per Part B §8.5–8.7 and §12.1.
+render_brief_markdown must produce exactly the Part B §11 structure.
+Write tests/test_eligibility.py with the Marisol fixture from §8.6 (expect 4x ELIGIBLE; with evidence=[] expect BUL-NY-02 and BUL-NY-04 INELIGIBLE), tests/test_no_audit_leak.py, tests/test_geoid.py, and a snapshot test for the brief.
+Run all tests. Finish with a walkthrough artifact that includes `grep -rn audit_ agent/` output.
+```
+
+- **Done when:** All tests in agent/tests pass; grep shows audit_ only in equity.py.
+- **Human checkpoint:** Agent lead confirms equity.py is the ONLY place audit_* is read (grep proof in the walkthrough).
+
+### M06 · Wire the ADK agent and pass the golden conversation locally
+**Lane:** Agent · **Start:** 1:45 · **Run:** `/m06-agent-local` (or paste the prompt)
+
+```text
+Implement agent/navigator/agent.py and prompts.py per Part B §10. Check the installed google-adk version and adapt the MCPToolset import if needed (note what you changed).
+Until M07 is deployed, start MCP Toolbox locally (`toolbox --tools-file mcp/tools.yaml`) or temporarily omit the toolset.
+Start `adk web` in agent/, then run the 7 turns from Part B §3 yourself. For each turn record: tools called, pass/fail against the 'Must show on screen' column, and fixes made.
+Save the transcript to docs/rigor/06_golden_local.md.
+```
+
+- **Done when:** All 7 turns pass locally; transcript saved.
+- **Human checkpoint:** Agent lead plays Dev and reads every answer from turns 1–7; rejects any answer that cites an excluded record.
+
+### M07 · Deploy MCP Toolbox to Cloud Run
+**Lane:** Agent · **Start:** 2:00 · **Run:** `/m07-mcp-toolbox` (or paste the prompt)
+
+```text
+Create mcp/tools.yaml and mcp/deploy_toolbox.sh per Part B §9. Show me the script and the roles it grants, wait for my approval, then run it.
+Use service name `sq7-mcp-toolbox` (shared project: avoid name collisions). Keep --min-instances=1.
+Smoke test: call get_tract_context with census_tract_geoid '36061024500' through the deployed server and show the JSON.
+```
+
+- **Done when:** Toolbox URL returns tract 36061024500 with severe_rent_burden_pct ≈ 32.8.
+- **Human checkpoint:** A human approves service-account creation and the IAM roles before Antigravity runs them.
+
+### M08 · Deploy the agent to Cloud Run
+**Lane:** Agent · **Start:** 2:15 · **Run:** `/m08-agent-deploy` (or paste the prompt)
+
+```text
+Deploy with `adk deploy cloud_run` per Part B §13.1 using service name `sq7-stabilization-navigator`, --with_ui, region us-central1.
+Show me the command and the IAM roles you will grant the agent's service account (bigquery.dataViewer, bigquery.jobUser, bigquery.connectionUser, aiplatform.user, run.invoker on the toolbox) and wait for approval.
+Set env vars TOOLBOX_URL, NAVIGATOR_MODEL, A4I_DATASET on the service. Then curl-test: create a session and send turn 1 of Part B §3. Write the URL into README.md under a new 'Live demo' heading.
+```
+
+- **Done when:** Deployed URL answers turn 1 with kept + excluded evidence; URL committed to README.
+- **Human checkpoint:** A human approves the deploy command and IAM grants; then opens the URL and runs turn 1 themselves.
+
+### M09 · Build the Intake Desk UI (mock first, then live)
+**Lane:** Front end · **Start:** 1:00 → 2:45 · **Run:** `/m09-frontend` (or paste the prompt)
+
+```text
+Build frontend/ per Part B §13.2 as index.html + app.js + styles.css, no build step.
+Phase 1 (now): create frontend/mock/*.json replaying the Part B §3 conversation from the tool output shapes in §8, and make the UI work on ?mock=1.
+Phase 2 (after M08): connect to the deployed ADK server (/run_sse), update the Case File panel from functionResponse events per tool name.
+Use the browser to open the page, run the mock conversation end to end, and attach screenshots at 1280×720 to a walkthrough artifact. Serve it from the agent's Cloud Run service or a static bucket — ask me which.
+```
+
+- **Done when:** Mock and live modes both complete turns 1–7 in the browser; screenshots in docs/rigor/09_ui/.
+- **Human checkpoint:** Front-end lead checks it at 1280×720 (video size) and approves the look.
+
+### M10 · Run the batch Equity Audit
+**Lane:** Data · **Start:** 1:45 · **Run:** `/m10-equity-audit` (or paste the prompt)
+
+```text
+Implement sql/05_equity_audit.sql and scripts/run_equity_audit.py per Part B §12.2. Run it.
+Write docs/equity_audit_results.md with the A/B/C table, the filled-in deck sentence (N tracts, M households, X% no-vehicle), and a one-paragraph interpretation.
+Never use audit_* anywhere except these two files and agent/navigator/equity.py.
+```
+
+- **Done when:** docs/equity_audit_results.md exists with real numbers from the query output.
+- **Human checkpoint:** Story lead copies the real numbers into the deck — no rounding beyond what the query returns.
+
+### M11 · Assemble the rigor evidence pack
+**Lane:** Data · **Start:** 2:45 · **Run:** `/m11-rigor-pack` (or paste the prompt)
+
+```text
+Create docs/rigor/README.md: one row per Rigor & judgment criterion in the challenge README (real vs modeled, validation, 4x join, GEOIDs, decoys, audit_* exclusion, equity audit, evidentiary limits) with a link to the proof file in docs/rigor/.
+Re-run all tests (pytest agent/tests) and the validation SQL against the current tables and refresh the outputs. Flag anything that regressed.
+```
+
+- **Done when:** docs/rigor/README.md table has no empty proof cells; all tests pass.
+- **Human checkpoint:** Lead confirms every Rigor & judgment bullet in the README rubric has a file behind it.
+
+### M12 · Write the deck, video script and submission README
+**Lane:** Story · **Start:** 0:30 → 3:30 · **Run:** `/m12-story` (or paste the prompt)
+
+```text
+Using Part B §1, §2, §3, §16, §17 and docs/equity_audit_results.md:
+1. docs/deck_outline.md — 10 slides, each with title, 3 bullets, and the visual to use.
+2. docs/video_script.md — ≤3:00 voiceover with timestamps, matching the live turns.
+3. Update README.md with a 'Squad 7 submission' section at the top: metro, track, live URL, architecture summary, real vs modeled data, how to run locally, limitations.
+Use only numbers that appear in the repo docs.
+```
+
+- **Done when:** Three files committed; README top section renders on GitHub.
+- **Human checkpoint:** Story lead edits for voice; nobody adds a number that isn't in the docs.
+
+### M13 · Dress rehearsal on the deployed app
+**Lane:** All · **Start:** 3:30 · **Run:** `/m13-rehearsal` (or paste the prompt)
+
+```text
+Using the browser, open the deployed Intake Desk (live mode, not mock) and run the 7 turns from Part B §3 exactly as written in docs/video_script.md.
+Time each turn. Flag any turn slower than 20s, any cold start, and any answer missing 'What the record can't prove yet'.
+Produce a go/no-go checklist artifact and a submission checklist (repo public, Skills project link, deck, video ≤3:00).
+```
+
+- **Done when:** Go/no-go checklist is all green; recording starts.
+- **Human checkpoint:** The person recording runs the script once with Antigravity's checklist next to them; then records.
+
+## A4. What humans must approve
+
+**Always approve by a person, never auto-run:**
+- Any `gcloud projects add-iam-policy-binding`, service-account creation, or secret creation (M02, M07, M08)
+- `gcloud run deploy` / `adk deploy cloud_run` (M07, M08)
+- Anything that deletes or replaces BigQuery tables other than via `scripts/load.sh`
+- Pushing to `main` and the final submission
+
+**Antigravity must never** (also in `AGENTS.md`):
+- Put `audit_*` columns in a tool output, prompt, embedding or ranking
+- Cast `census_tract_geoid` to a number, or join raw `court_eviction_filings` without aggregating
+- Use `LIKE '%mold%'`-style keyword matching as evidence retrieval
+- Commit `.env`, tokens or service-account keys
+- Invent numbers for the deck. Every figure must come from a file in the repo.
+
+## A5. When Antigravity gets stuck
+
+Paste the matching prompt:
+
+| Symptom | Prompt |
+|---|---|
+| Any traceback | *"Here is the full error and the command I ran. Read the files involved, explain the root cause in one sentence, then fix it. Don't change unrelated code."* |
+| `AI.EMBED` permission error | *"Check the us.a4i-vertex connection service account has roles/aiplatform.user, wait 60s, and re-run the smoke query from M02."* |
+| Empty search results | *"Show the raw VECTOR_SEARCH rows before filtering for these queries. Is top_k ≥ 15? Is the block anchor NULL? Is MIN_SIMILARITY too high?"* |
+| Counts 4× too high | *"Find every join to court_eviction_filings and replace it with v_tract_context."* |
+| ADK import error | *"Print the installed google-adk version and the available MCP connection param classes, then adapt agent.py."* |
+| Cloud Run 403 between services | *"Grant roles/run.invoker on sq7-mcp-toolbox to the agent's service account and send an ID token in the MCP request header."* |
+| Slow first response in demo | *"Set --min-instances=1 on both Cloud Run services and warm them with one request."* |
+| Antigravity drifts from spec | *"Stop. Re-read docs/IMPLEMENTATION.md Part B §<n> and AGENTS.md, list where your change differs, and correct it."* |
+
+## A6. Timeline by lane
+
+| Time | Lead | Data | Agent | Front end | Story |
+|---|---|---|---|---|---|
+| 0:00–0:15 | M00 | A0 setup | A0 setup | A0 setup | A0 setup |
+| 0:15–0:45 | approvals | M01, M02, M03 | review spec §8 | M09 phase 1 | M12 draft |
+| 0:45–1:45 | merges | M10 prep | M04 → M05 | M09 phase 1 | M12 draft |
+| 1:45–2:15 | approvals | M10 | M06 | polish mock | M12 numbers |
+| 2:15–2:45 | approvals | help deploy | M07 → M08 | M09 phase 2 | rehearse |
+| 2:45–3:30 | freeze | M11 | fix failures | polish live | M12 final |
+| 3:30–4:00 | M13 | M13 | M13 | M13 | **record** |
+| 4:00–4:30 | submit | — | — | — | upload |
+
+**Scope-cut order if late:** M09 phase 2 → use `adk web` and justify it. Then the bulletin embeddings in M03 (keep the rules). Then the M10 batch audit → per-tract note only. **Never cut:** decoy filtering (M04), deployment (M08), the evidentiary boundary.
+
+---
+
+# Part B — Technical spec
+
+> Antigravity implements this; humans use it to check the work. Section numbers are referenced by the mission prompts.
 
 ## 1. Why New York
 
@@ -193,14 +482,19 @@ scripts/
   run_equity_audit.py        # batch audit → numbers for the deck
 docs/
   IMPLEMENTATION.md          # this file
+  rigor/                     # proof outputs from every mission (judges' Rigor score)
+.agent/
+  rules/navigator-guardrails.md   # mirror of AGENTS.md for Antigravity
+  workflows/m00-…m13-*.md         # one slash-command workflow per mission
 AGENTS.md                    # guardrails Antigravity must follow
+GEMINI.md                    # pointer to AGENTS.md + this doc
 ```
 
 ---
 
 ## 6. Phase 0: Load data and build embeddings
 
-**Owner: Data lane. Target: done by 0:45. Unblocks everyone.**
+**Antigravity missions: M01 (load), M02 (connection), M03 (embeddings). Target: done by 0:45.**
 
 ```bash
 # From repo root in Cloud Shell
@@ -582,7 +876,7 @@ def _block_core(block: str) -> str:
     return " ".join(b.split()[:4])
 ```
 
-> **Antigravity note:** move the Section 7.4 SQL into `tools/search.sql`. Add a unit test asserting **no `DECOY-*` id ever appears in `kept`** across 10 hazard phrasings.
+> **Antigravity (M04):** move the Section 7.4 SQL into `tools/search.sql`. Add a unit test asserting **no `DECOY-*` id ever appears in `kept`** across 10 hazard phrasings.
 
 ### 8.5 Statutes (`tools/statutes.py`)
 
@@ -744,7 +1038,7 @@ async def finalize_brief(memo_markdown: str, tool_context: ToolContext) -> dict:
                          "evidentiary_boundary", "memo", "equity_audit"]}
 ```
 
-`render_brief_markdown` is a pure function that formats the Section 11 template from `case`. Antigravity should implement it with a snapshot test.
+`render_brief_markdown` is a pure function that formats the Section 11 template from `case`. Antigravity implements it in M05 with a snapshot test.
 
 ---
 
@@ -817,19 +1111,19 @@ toolsets:
 #!/usr/bin/env bash
 set -euo pipefail
 PROJECT_ID="$(gcloud config get-value project)"; REGION=us-central1
-gcloud iam service-accounts create toolbox-sa --display-name "MCP Toolbox" || true
-SA="toolbox-sa@${PROJECT_ID}.iam.gserviceaccount.com"
+gcloud iam service-accounts create sq7-toolbox-sa --display-name "MCP Toolbox" || true
+SA="sq7-toolbox-sa@${PROJECT_ID}.iam.gserviceaccount.com"
 for ROLE in roles/bigquery.dataViewer roles/bigquery.jobUser; do
   gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:$SA" --role="$ROLE" --condition=None
 done
-gcloud secrets create toolbox-tools --data-file=mcp/tools.yaml 2>/dev/null || \
-  gcloud secrets versions add toolbox-tools --data-file=mcp/tools.yaml
-gcloud secrets add-iam-policy-binding toolbox-tools --member="serviceAccount:$SA" --role=roles/secretmanager.secretAccessor
+gcloud secrets create sq7-toolbox-tools --data-file=mcp/tools.yaml 2>/dev/null || \
+  gcloud secrets versions add sq7-toolbox-tools --data-file=mcp/tools.yaml
+gcloud secrets add-iam-policy-binding sq7-toolbox-tools --member="serviceAccount:$SA" --role=roles/secretmanager.secretAccessor
 
-gcloud run deploy mcp-toolbox \
+gcloud run deploy sq7-mcp-toolbox \
   --image=us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:latest \
   --region="$REGION" --service-account="$SA" \
-  --set-secrets="/app/tools.yaml=toolbox-tools:latest" \
+  --set-secrets="/app/tools.yaml=sq7-toolbox-tools:latest" \
   --set-env-vars="GOOGLE_CLOUD_PROJECT=${PROJECT_ID}" \
   --args="--tools-file=/app/tools.yaml,--address=0.0.0.0,--port=8080" \
   --min-instances=1 --no-allow-unauthenticated
@@ -873,7 +1167,7 @@ root_agent = Agent(
 )
 ```
 
-> **Antigravity:** check the ADK version installed. If `StreamableHTTPConnectionParams` isn't available, use `SseConnectionParams(url=TOOLBOX_URL + "/mcp/sse")`, or `ToolboxToolset` from `google.adk.tools.toolbox_toolset`. For Cloud Run → Cloud Run auth, mint an ID token with `google.oauth2.id_token.fetch_id_token(Request(), TOOLBOX_URL)` per request (wrap it in a small header provider) instead of a static env var.
+> **Antigravity (M06):** check the ADK version installed. If `StreamableHTTPConnectionParams` isn't available, use `SseConnectionParams(url=TOOLBOX_URL + "/mcp/sse")`, or `ToolboxToolset` from `google.adk.tools.toolbox_toolset`. For Cloud Run → Cloud Run auth, mint an ID token with `google.oauth2.id_token.fetch_id_token(Request(), TOOLBOX_URL)` per request (wrap it in a small header provider) instead of a static env var.
 
 ### 10.2 `prompts.py` (system instruction)
 
@@ -933,7 +1227,7 @@ GOOGLE_CLOUD_PROJECT=your-project
 GOOGLE_CLOUD_LOCATION=us-central1
 A4I_DATASET=a4i_housing
 NAVIGATOR_MODEL=gemini-2.5-flash
-TOOLBOX_URL=https://mcp-toolbox-xxxx-uc.a.run.app
+TOOLBOX_URL=https://sq7-mcp-toolbox-xxxx-uc.a.run.app
 ```
 
 Run locally: `cd agent && adk web` (pick `navigator`).
@@ -1043,11 +1337,11 @@ cd agent
 adk deploy cloud_run \
   --project "$(gcloud config get-value project)" \
   --region us-central1 \
-  --service_name stabilization-navigator \
+  --service_name sq7-stabilization-navigator \
   --with_ui \
   ./navigator
 # Then grant the agent's service account: bigquery.dataViewer, bigquery.jobUser,
-# bigquery.connectionUser (for AI.EMBED via us.a4i-vertex), aiplatform.user, run.invoker on mcp-toolbox.
+# bigquery.connectionUser (for AI.EMBED via us.a4i-vertex), aiplatform.user, run.invoker on sq7-mcp-toolbox.
 # Set env vars on the service: TOOLBOX_URL, NAVIGATOR_MODEL, A4I_DATASET.
 ```
 
@@ -1079,51 +1373,13 @@ Mock the JSON schema of tool outputs from Section 8 on day zero, and swap in the
 
 ## 14. Antigravity prompts by lane
 
-Paste these into Antigravity (IDE agent panel or `agy`). Each one assumes this file and `AGENTS.md` are in the repo.
-
-**Data lane, prompt D1**
-> Read docs/IMPLEMENTATION.md sections 6–7. Create sql/01_connection.sh, sql/02_embed_complaints.sql, sql/03_embed_rules.sql and sql/04_views.sql exactly as specified. Run them in order with `bq query --use_legacy_sql=false < file` against dataset a4i_housing (location US). After each one, run the sanity query and show me the row counts. Stop and report if complaints_embedded is not 174 rows.
-
-**Data lane, prompt D2**
-> Implement sql/05_equity_audit.sql and scripts/run_equity_audit.py (Section 12.2). The script prints the A/B/C table and writes docs/equity_audit_results.md with the real numbers and the deck sentence filled in. Never use audit_* columns anywhere except this file and agent/navigator/equity.py.
-
-**Agent lane, prompt A1**
-> Scaffold agent/navigator per Section 5 and implement config.py, bq.py, tools/case_file.py and tools/evidence.py (Sections 8.1–8.4). Put the Section 7.4 SQL in tools/search.sql. Use only parameterized BigQuery queries. Then write tests/test_decoys.py (Section 13.3) and run it against the live dataset.
-
-**Agent lane, prompt A2**
-> Implement tools/statutes.py, tools/funds.py, tools/brief.py and equity.py (Sections 8.5–8.7, 12.1). Write tests/test_eligibility.py with the Marisol fixture from Section 8.6 and make it pass. render_brief_markdown must produce exactly the Section 11 structure. Add a snapshot test.
-
-**Agent lane, prompt A3**
-> Implement agent.py and prompts.py (Section 10). Check the installed google-adk version and adapt the MCPToolset import if needed. Run `adk web` locally and execute the 7 turns in Section 3. Report any turn where the agent cites an excluded record or omits "What the record can't prove yet".
-
-**Agent lane, prompt A4**
-> Create mcp/tools.yaml and mcp/deploy_toolbox.sh (Section 9), deploy the toolbox, then deploy the agent with `adk deploy cloud_run` (Section 13.1). Grant the IAM roles listed. Give me both URLs and a curl smoke test.
-
-**Front end lane, prompt F1**
-> Build frontend/ per Section 13.2 as a single index.html + app.js + styles.css (no build step). Start with a mock that replays the Section 3 conversation from frontend/mock/*.json. Make it legible on a laptop screen recording at 1280×720.
-
-**Front end lane, prompt F2**
-> Wire frontend/ to the deployed ADK server: create a session, stream /run_sse, and update the Case File panel from functionResponse events for each tool name. Keep the mock behind a ?mock=1 flag as a demo fallback.
-
-**Story lane, prompt S1**
-> Using docs/IMPLEMENTATION.md sections 1, 2, 12 and 16–17, draft a 10-slide pitch deck outline in docs/deck_outline.md and a 3-minute voiceover script with timestamps in docs/video_script.md. Use only numbers present in this doc or docs/equity_audit_results.md.
+Moved to **Part A**. Every prompt is now a mission card (A3) and a workflow file in `.agent/workflows/`.
 
 ---
 
 ## 15. 4.5-hour timeline
 
-| Time | Data | Agent | Front end | Story |
-|---|---|---|---|---|
-| 0:00–0:20 | Step 0 together: confirm NYC + track + Marisol scenario | ← | ← | ← |
-| 0:20–0:45 | load.sh new-york, connection, embeddings (D1) | Scaffold, case_file (A1) | Mock schema + layout (F1) | Deck skeleton, data provenance slide |
-| 0:45–1:45 | Views, verify decoy filter in SQL | evidence + statutes + funds (A1–A2) | Case File panel on mock | Write the Marisol narrative and voiceover v1 |
-| 1:45–2:15 | Equity audit (D2) | agent.py + adk web, golden path (A3) | Brief tab render | Architecture slide |
-| 2:15–2:45 | Toolbox deploy assist | **Deploy** agent + toolbox (A4) | Wire to live URL (F2) | Fill equity numbers |
-| 2:45–3:30 | Tests: fan-out, geoid, audit leak | Fix golden-path failures; under-reporting twist | Polish, countdown, badges | Rehearse script against live app |
-| 3:30–4:00 | Screenshot validations for deck | Freeze code | Freeze UI | **Record video** (2 takes) |
-| 4:00–4:30 | README update for submission | Repo cleanup | — | Upload all 4 artifacts |
-
-**Scope-cut order if late:** custom front end → `adk web` with an explanation. Then the bulletin embeddings (keep the rules). Then the batch equity audit → per-tract note only. **Never cut:** decoy filtering, deployment, the evidentiary boundary.
+Moved to **A6. Timeline by lane**.
 
 ---
 

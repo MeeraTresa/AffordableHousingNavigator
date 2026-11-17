@@ -2,7 +2,7 @@ import re
 from google.cloud import bigquery
 from google.adk.tools import ToolContext
 from ..bq import run_query
-from ..config import fpl, EMERGENCY_HOURS
+from ..config import fpl
 
 FUNDS_SQL = """
 SELECT b.bulletin_id, b.program_name, b.administering_agency, b.funding_stream,
@@ -14,10 +14,7 @@ LEFT JOIN (
   SELECT base.bulletin_id, distance
   FROM VECTOR_SEARCH(TABLE `a4i_housing.bulletins_embedded`, 'embedding',
     (SELECT AI.EMBED(@q, connection_id => 'us.a4i-vertex', endpoint => 'gemini-embedding-2').result AS v),
-    query_column_to_search => 'v',
-    distance_type => 'COSINE',
-    top_k => 4,
-    options => '{"use_brute_force":true}')
+    query_column_to_search => 'v', top_k => 4, distance_type => 'COSINE', options => '{"use_brute_force":true}')
 ) vs USING (bulletin_id)
 """
 
@@ -30,10 +27,10 @@ def _evaluate(b: dict, case: dict) -> dict:
     def chk(name, ok, detail):
         checks.append({"rule": name, "pass": ok, "detail": detail})
 
-    if b["residential_tenants_only"]:
+    if b.get("residential_tenants_only"):
         chk("Residential tenant", True, "Tenant rents a residential unit (intake confirmed).")
 
-    if b["requires_open_habitability_case"]:
+    if b.get("requires_open_habitability_case"):
         has_open = len(case.get("evidence", [])) > 0
         chk("Open habitability case", has_open,
             f"{len(case.get('evidence', []))} open residential HPD/311 record(s) on/near block"
@@ -76,13 +73,12 @@ def _evaluate(b: dict, case: dict) -> dict:
 def match_relief_funds(tool_context: ToolContext) -> dict:
     """Evaluate every emergency stabilization fund for this household with explicit rule checks.
     Ranks ELIGIBLE first, then habitability-linked programs when the hearing is imminent."""
-    case = tool_context.state.get("case")
-    if not case:
-        return {"error": "No open case. Call open_case first."}
+    case = tool_context.state["case"]
     q = f"Relief for tenant facing nonpayment eviction with {', '.join(case['hazards'])}"
     rows = run_query(FUNDS_SQL, [bigquery.ScalarQueryParameter("q", "STRING", q)])
     results = [_evaluate(b, case) for b in rows]
-    urgent = case.get("hours_to_hearing", 999) < EMERGENCY_HOURS
+    from ..config import EMERGENCY_HOURS
+    urgent = case["hours_to_hearing"] < EMERGENCY_HOURS
     order = {"ELIGIBLE": 0, "NEEDS INFO": 1, "INELIGIBLE": 2}
     results.sort(key=lambda r: (order[r["status"]],
                                 -(1 if urgent and r["requires_open_habitability_case"] else 0),

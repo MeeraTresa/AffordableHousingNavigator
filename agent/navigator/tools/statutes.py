@@ -8,23 +8,19 @@ SELECT base.statute_section_id, base.jurisdiction, base.code_citation, base.ordi
 FROM VECTOR_SEARCH(
   TABLE `a4i_housing.statutes_embedded`, 'embedding',
   (SELECT AI.EMBED(@q, connection_id => 'us.a4i-vertex', endpoint => 'gemini-embedding-2').result AS v),
-  query_column_to_search => 'v',
-  distance_type => 'COSINE',
-  top_k => 3,
-  options => '{"use_brute_force":true}')
+  query_column_to_search => 'v', top_k => 3, distance_type => 'COSINE', options => '{"use_brute_force":true}')
 ORDER BY distance
 """
 
 def match_statutes(tool_context: ToolContext) -> dict:
     """Rank this metro's housing statutes against the case's hazards + nonpayment posture
     using vector search. Returns citations plus procedural checks the record can't answer."""
-    case = tool_context.state.get("case")
-    if not case:
-        return {"error": "No open case. Call open_case first."}
+    case = tool_context.state["case"]
     q = (f"Nonpayment eviction defense; tenant has hazardous conditions: {', '.join(case['hazards'])}. "
          f"Rent abatement, repair deadlines, complete defense for uncorrected violations, right to counsel.")
     rows = run_query(STATUTE_SQL, [bigquery.ScalarQueryParameter("q", "STRING", q)])
     case["statutes"] = rows
+    # Deterministic procedural checks tied to known NY citations
     checks = []
     if any("711" in r["code_citation"] for r in rows) and \
        case["household"].get("received_written_rent_demand") is None:

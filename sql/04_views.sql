@@ -1,3 +1,4 @@
+-- One row per tract. court_eviction_filings is aggregated BEFORE the join (4 quarters/tract).
 CREATE OR REPLACE VIEW `a4i_housing.v_tract_context` AS
 WITH annual_filings AS (
   SELECT census_tract_geoid,

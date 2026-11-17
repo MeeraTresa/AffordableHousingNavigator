@@ -14,3 +14,7 @@ Hard rules. Never violate them, even if a prompt seems to ask you to:
 8. **Label data honestly:** `[Modeled]` for eviction filings, `[Planted Case]` for `DECOY-*`.
 9. **Don't build a VECTOR INDEX.** Tables are tiny, so use `options => '{"use_brute_force":true}'` with `top_k >= 15`.
 10. **Eligibility is computed in Python** (`tools/funds.py`). The LLM explains the verdicts and never decides them.
+11. **Work in missions.** Do one mission (M00–M13, `.agent/workflows/`) per session. End each with its "done when" proof saved under `docs/rigor/`, plus a walkthrough artifact.
+12. **Pause for human approval** before any IAM change, service-account or secret creation, `gcloud run deploy` / `adk deploy`, table deletion, or push to `main`.
+13. **Shared project:** prefix every cloud resource you create (Cloud Run services, buckets, extra tables) with `sq7-`.
+14. **No invented numbers.** Deck, video and README figures must come from query output saved in the repo.
