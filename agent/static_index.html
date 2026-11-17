@@ -575,6 +575,73 @@
       demoBtn.disabled = false;
     }
 
+    
+    // Format Gemini Vision analysis into clean, structured UI cards instead of raw JSON
+    function renderVisionCard(data) {
+      let analysisObj = null;
+      let rawText = data.analysis || "";
+
+      // Try parsing if it's JSON or markdown codeblock containing JSON
+      try {
+        let cleaned = rawText.trim();
+        if (cleaned.startsWith("```json")) {
+          cleaned = cleaned.replace(/^```json/, "").replace(/```$/, "").trim();
+        } else if (cleaned.startsWith("```")) {
+          cleaned = cleaned.replace(/^```/, "").replace(/```$/, "").trim();
+        }
+        analysisObj = JSON.parse(cleaned);
+      } catch (e) {
+        analysisObj = null;
+      }
+
+      if (analysisObj) {
+        const cond = analysisObj.condition_observed || "Habitability hazard observed.";
+        const sev = analysisObj.severity_class || "Class B (Hazardous)";
+        const corrob = analysisObj.corroboration_notes || "Corroborates open municipal violation records.";
+        const evBound = analysisObj.evidentiary_boundary || data.boundary_note || "Photo establishes visual condition only.";
+
+        const sevBadgeClass = sev.includes("C") ? "badge-emergency" : (sev.includes("B") ? "badge-conditional" : "badge-standard");
+
+        return `
+          <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 16px; margin-top: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px;">
+              <strong style="color: #0f172a; font-size: 1.02em;">🔍 Forensic Habitability Inspection</strong>
+              <span class="badge ${sevBadgeClass}">${escapeHtml(sev)}</span>
+            </div>
+
+            <div style="margin-bottom: 8px;">
+              <strong style="color: #475569; font-size: 0.85em; text-transform: uppercase;">Condition Observed:</strong>
+              <div style="color: #1e293b; margin-top: 2px;">${escapeHtml(cond)}</div>
+            </div>
+
+            <div style="margin-bottom: 10px;">
+              <strong style="color: #475569; font-size: 0.85em; text-transform: uppercase;">Public Record Corroboration:</strong>
+              <div style="color: #334155; margin-top: 2px;">${escapeHtml(corrob)}</div>
+            </div>
+
+            <div style="background: #fef2f2; border-left: 3px solid #dc2626; border-radius: 4px; padding: 8px 10px; font-size: 0.86em; color: #991b1b;">
+              ⚖️ <strong>Evidentiary Boundary:</strong> ${escapeHtml(evBound)}
+            </div>
+          </div>
+        `;
+      } else {
+        // Fallback for markdown formatted text
+        return `
+          <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 16px; margin-top: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px;">
+              <strong style="color: #0f172a; font-size: 1.02em;">🔍 Forensic Habitability Inspection</strong>
+            </div>
+            <div style="color: #1e293b; font-size: 0.9em; line-height: 1.5;">
+              ${marked.parse(rawText)}
+            </div>
+            <div style="background: #fef2f2; border-left: 3px solid #dc2626; border-radius: 4px; padding: 8px 10px; font-size: 0.86em; color: #991b1b; margin-top: 10px;">
+              ⚖️ <strong>Evidentiary Boundary:</strong> ${escapeHtml(data.boundary_note || "Photo corroborates visual presence; requires tenant affidavit to verify unit & timestamp.")}
+            </div>
+          </div>
+        `;
+      }
+    }
+
     // Multimodal Photo Inspection (Turns 1 & 6)
     async function inspectSamplePhoto(type) {
       appendMessage(`📷 Uploaded tenant hazard evidence: **${type === 'mold' ? 'Bathroom Mold & Tile Colonization' : 'Radiator Plumbing Leak'}** [Sample Photo]`, "user");
@@ -594,16 +661,7 @@
         });
         const data = await res.json();
         
-        let visionCard = `
-          <strong>🔍 Gemini 2.5 Flash Vision Forensic Inspection</strong><br>
-          <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; margin-top: 6px; font-size: 0.9em;">
-            ${marked.parse(data.analysis)}
-            <div style="margin-top: 8px; font-size: 0.85em; color: #b91c1c; border-top: 1px dashed #cbd5e1; padding-top: 4px;">
-              ⚖️ <strong>Evidentiary Boundary:</strong> ${escapeHtml(data.boundary_note)}
-            </div>
-          </div>
-        `;
-        appendMessage(visionCard, "agent");
+        appendMessage(renderVisionCard(data), "agent");
       } catch (e) {
         appendMessage("Error inspecting photo: " + e.message, "agent");
       }
@@ -1132,16 +1190,7 @@
           document.getElementById("latency-badge").textContent = "Photo Processed";
           document.getElementById("latency-badge").className = "badge badge-kept";
 
-          let htmlOut = `
-            <strong>🔍 Gemini 2.5 Flash Vision Forensic Inspection:</strong><br>
-            <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; margin-top: 6px; font-size: 0.9em;">
-              ${marked.parse(data.analysis)}
-              <div style="margin-top: 8px; font-size: 0.85em; color: #b91c1c; border-top: 1px dashed #cbd5e1; padding-top: 4px;">
-                ⚖️ <strong>Evidentiary Boundary:</strong> ${escapeHtml(data.boundary_note)}
-              </div>
-            </div>
-          `;
-          appendMessage(htmlOut, "agent");
+          appendMessage(renderVisionCard(data), "agent");
         } catch (err) {
           appendMessage("Error analyzing photo: " + err.message, "agent");
         }
