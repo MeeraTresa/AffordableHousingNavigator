@@ -1,16 +1,64 @@
 # Affordable Housing Stability & Eviction Prevention Navigator
 
-**Agents for Impact 2026**
+**Agents for Impact 2026 · Squad 7 Official Submission**
 
 ---
 
-## Live demo
+## Squad 7 Submission Summary
 
-- **Stabilization Navigator Agent (Cloud Run Dev UI):** [https://sq7-stabilization-navigator-530357188502.us-central1.run.app/dev-ui/](https://sq7-stabilization-navigator-530357188502.us-central1.run.app/dev-ui/)
-- **MCP Database Toolbox (Cloud Run):** [https://sq7-mcp-toolbox-530357188502.us-central1.run.app](https://sq7-mcp-toolbox-530357188502.us-central1.run.app)
-- **Google Cloud Project:** `qwiklabs-gcp-03-ee26737d3114` (Region: `us-central1`)
-- **Metro Corpus:** New York (`a4i_housing`, `us.a4i-vertex`, `gemini-embedding-2`)
-- **Verified Deployment Proof:** [docs/rigor/08_agent_cloudrun.md](docs/rigor/08_agent_cloudrun.md)
+| Dimension | Specification |
+|---|---|
+| **Metro Corridor** | **New York City** (`a4i_housing`, BigQuery location `US`, connection `us.a4i-vertex`, embedding endpoint `gemini-embedding-2`) |
+| **Track** | **Intake Triage & Emergency Relief Matching** (Connecting habitability records to housing court defense) |
+| **Live Agent Web UI** | [https://sq7-stabilization-navigator-530357188502.us-central1.run.app/dev-ui/](https://sq7-stabilization-navigator-530357188502.us-central1.run.app/dev-ui/) |
+| **Live MCP Toolbox** | [https://sq7-mcp-toolbox-530357188502.us-central1.run.app](https://sq7-mcp-toolbox-530357188502.us-central1.run.app) |
+| **GCP Project** | `qwiklabs-gcp-03-ee26737d3114` (Region `us-central1`, Service Account: `530357188502-compute@developer.gserviceaccount.com`) |
+| **Rigor Evidence Pack** | [docs/rigor/README.md](docs/rigor/README.md) (All 11 criteria verified with reproducible logs & screenshots) |
+| **Equity Audit** | [docs/equity_audit_results.md](docs/equity_audit_results.md) (168 tracts audited; Group B silent distress quantified) |
+| **Pitch Deck Outline** | [docs/deck_outline.md](docs/deck_outline.md) (10 slides with visuals & metrics) |
+| **Video Walkthrough Script** | [docs/video_script.md](docs/video_script.md) (2:55 live turn walkthrough) |
+
+### Architecture Summary
+
+1. **Intake Desk UI (`frontend/`):** Responsive civic-tech interface with 40% Chat / 60% Live Case File division (Evidence, Funds, Law, Brief tabs), mock replay (`?mock=1`), and live ADK API streaming.
+2. **ADK Agent Runtime (`agent/navigator/`):** Built with Google ADK and Gemini 2.5 Flash on Cloud Run (`sq7-stabilization-navigator`), maintaining multi-turn case state (100-block, hearing deadline, hazards, household criteria, evidence, exclusions).
+3. **Custom Python Tools:**
+   - `evidence.py`: Generates candidates via BigQuery `AI.EMBED` + `VECTOR_SEARCH` (`gemini-embedding-2`), then applies strict relational post-filters (`property_type = 'Residential' AND closed_date IS NULL`) to exclude commercial and abated decoys with human-readable rationale.
+   - `funds.py`: Deterministic eligibility engine evaluating NYC relief programs (HRA One Shot Deal, CityFHEPS, Right to Counsel, ERP Clinic) with pass/fail checkmarks. **Code computes eligibility; LLM explains it.**
+   - `statutes.py`: Semantic matching against NY RPL § 235-b, NYC Admin. Code § 27-2115 (Class C = 24h repair window), and Spiegel Law.
+   - `brief.py` & `equity.py`: Compiles the complete Tenant Stabilization Brief with auto-appended post-output equity audit notes.
+4. **Cloud Run MCP Toolbox (`mcp/`):** Deployed with `--min-instances=1` providing parameterized, fan-out-safe tools (`get_tract_context`, `metro_baseline`, `list_relief_programs`).
+5. **BigQuery Data Layer (`sql/`):** 168 census tracts, 174 embedded complaints, pre-aggregated 4-quarter eviction context view (`v_tract_context`).
+
+### Real vs. Modeled Data Provenance
+
+- **Real Public Records:** ACS 5-Year housing tenure counts and municipal 311 habitability complaint narratives are real open public records from NYC agencies.
+- **[Modeled] Eviction Filings:** Court filings in `court_eviction_filings` are modeled from county-level baselines and labeled `[Modeled]` in every prompt, tool output, and UI component.
+- **4× Join Trap Avoidance:** Eviction filings contain 4 quarters per tract (672 rows for 168 tracts). Raw joins quadruple tract metrics; our system queries only `v_tract_context` with `quarters_aggregated = 4`.
+- **Teaching Decoys:** 9 planted decoy cases (`DECOY-*`) are labeled `[Planted Case]` and verified filtered out by automated tests (`test_decoys.py`).
+
+### How to Run Locally
+
+```bash
+# 1. Run full unit test suite (16 tests, including decoy filtering, fanout, and audit isolation)
+python3 -m pytest agent/tests
+
+# 2. Run batch Equity Audit query against BigQuery
+python3 scripts/run_equity_audit.py
+
+# 3. Serve custom Intake Desk UI locally
+python3 -m http.server 8088 --directory frontend
+# Open http://localhost:8088?mock=1 for instant mock replay, or click "Live (Cloud Run)"
+
+# 4. Run Playwright UI browser test suite (captures 1280x720 screenshots)
+python3 scripts/test_ui.py
+```
+
+### Real-World Limitations
+
+1. **Evidentiary Boundaries:** Public 100-block 311 records corroborate municipal building/cluster conditions; they cannot prove interior unit leasehold facts or personal rent ledger history.
+2. **Snapshot Timing:** Snapshot data cannot verify oral claims of recent repairs (e.g., landlord claiming boiler was fixed last week); the system advises requesting an immediate HPD emergency re-inspection.
+3. **Reporting Bias ("Silent Distress"):** In 37 high-burden tracts (33,980 rent-burdened families, 74.9% no-vehicle), tenants under-report hazards due to fear of retaliation. The navigator routes these cases to inspection intake and non-contingent relief programs rather than denying assistance.
 
 ---
 
