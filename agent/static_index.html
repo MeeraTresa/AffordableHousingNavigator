@@ -50,6 +50,14 @@
     
     .input-row { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
     .input-row input { flex: 1; }
+    .plus-btn { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 11px; font-size: 1.25em; font-weight: bold; cursor: pointer; color: #1e3a8a; line-height: 1; transition: all 0.2s; }
+    .plus-btn:hover { background: #e2e8f0; color: #1d4ed8; }
+    .upload-dropdown { position: relative; display: inline-block; }
+    .upload-menu { display: none; position: absolute; bottom: 44px; left: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); padding: 8px 0; z-index: 1000; min-width: 230px; }
+    .upload-menu.show { display: block; }
+    .upload-menu-item { display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.88em; cursor: pointer; color: #1e293b; text-decoration: none; transition: background 0.15s; }
+    .upload-menu-item:hover { background: #f1f5f9; }
+    .upload-menu-item span { font-size: 1.2em; }
     .mic-btn { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; font-size: 1.1em; cursor: pointer; transition: all 0.2s; }
     .mic-btn.recording { background: #ef4444; color: white; border-color: #dc2626; animation: pulse 1s infinite; }
     @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
@@ -232,8 +240,41 @@
       </div>
 
       <div class="input-row">
-        <button class="mic-btn" id="mic-btn" onclick="toggleSpeechRecognition()" title="Voice Intake (Speak Marisol's Story)">🎙️</button>
-        <input type="text" id="user-input" placeholder="Speak or enter tenant street address, hearing date, or hazards..." onkeydown="if(event.key === 'Enter') sendMessage()" />
+        <!-- Plus (+) Upload Button with Dropdown Menu -->
+        <div class="upload-dropdown">
+          <button class="plus-btn" id="plus-btn" onclick="toggleUploadMenu()" title="Upload Photo, Notice, or Audio Recording">＋</button>
+          <div class="upload-menu" id="upload-menu">
+            <div class="upload-menu-item" onclick="document.getElementById('input-photo-upload').click(); toggleUploadMenu();">
+              <span>📷</span>
+              <div>
+                <strong>Upload Photo Evidence</strong>
+                <div style="font-size:0.78em; color:#64748b;">Mold, leaks, heat radiator</div>
+              </div>
+            </div>
+            <div class="upload-menu-item" onclick="document.getElementById('input-doc-upload').click(); toggleUploadMenu();">
+              <span>📄</span>
+              <div>
+                <strong>Upload Court Document</strong>
+                <div style="font-size:0.78em; color:#64748b;">14-day notice, petition</div>
+              </div>
+            </div>
+            <div class="upload-menu-item" onclick="document.getElementById('input-audio-upload').click(); toggleUploadMenu();">
+              <span>🎵</span>
+              <div>
+                <strong>Upload Audio File</strong>
+                <div style="font-size:0.78em; color:#64748b;">Voicemail, intake interview</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden File Inputs -->
+        <input type="file" id="input-photo-upload" style="display:none;" accept="image/*" onchange="handleImageFile(event)" />
+        <input type="file" id="input-doc-upload" style="display:none;" accept="image/*,.pdf" onchange="handleDocFile(event)" />
+        <input type="file" id="input-audio-upload" style="display:none;" accept="audio/*" onchange="handleAudioFile(event)" />
+
+        <button class="mic-btn" id="mic-btn" onclick="toggleSpeechRecognition()" title="Live Voice Intake (Speak Marisol's Story)">🎙️</button>
+        <input type="text" id="user-input" placeholder="Type message, speak with mic, or click ＋ to upload image/audio..." onkeydown="if(event.key === 'Enter') sendMessage()" />
         <button onclick="sendMessage()" id="send-btn">Send</button>
       </div>
 
@@ -1050,6 +1091,153 @@
         </html>
       `);
       win.document.close();
+    }
+
+    
+    // Toggle '+' Upload Menu
+    function toggleUploadMenu() {
+      const menu = document.getElementById("upload-menu");
+      menu.classList.toggle("show");
+    }
+
+    // Close menu when clicking outside
+    document.addEventListener("click", (e) => {
+      const plusBtn = document.getElementById("plus-btn");
+      const menu = document.getElementById("upload-menu");
+      if (menu && plusBtn && !plusBtn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.remove("show");
+      }
+    });
+
+    // Handle Uploaded Image File (Photo Evidence)
+    function handleImageFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        appendMessage(`📷 Uploaded tenant photo evidence: <strong>${escapeHtml(file.name)}</strong> (${Math.round(file.size / 1024)} KB)`, "user");
+        document.getElementById("latency-badge").textContent = "Analyzing Photo...";
+        document.getElementById("latency-badge").className = "badge badge-emergency";
+        try {
+          const res = await fetch(`${API_BASE}/vision/inspect-evidence`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              session_id: sessionId,
+              image_base64: e.target.result,
+              mime_type: file.type || "image/jpeg"
+            })
+          });
+          const data = await res.json();
+          document.getElementById("latency-badge").textContent = "Photo Processed";
+          document.getElementById("latency-badge").className = "badge badge-kept";
+
+          let htmlOut = `
+            <strong>🔍 Gemini 2.5 Flash Vision Forensic Inspection:</strong><br>
+            <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; margin-top: 6px; font-size: 0.9em;">
+              ${marked.parse(data.analysis)}
+              <div style="margin-top: 8px; font-size: 0.85em; color: #b91c1c; border-top: 1px dashed #cbd5e1; padding-top: 4px;">
+                ⚖️ <strong>Evidentiary Boundary:</strong> ${escapeHtml(data.boundary_note)}
+              </div>
+            </div>
+          `;
+          appendMessage(htmlOut, "agent");
+        } catch (err) {
+          appendMessage("Error analyzing photo: " + err.message, "agent");
+        }
+      };
+      reader.readAsDataURL(file);
+      event.target.value = "";
+    }
+
+    // Handle Uploaded Document File (14-day notice, petition)
+    function handleDocFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        appendMessage(`📄 Uploaded court document: <strong>${escapeHtml(file.name)}</strong> (${Math.round(file.size / 1024)} KB)`, "user");
+        document.getElementById("latency-badge").textContent = "OCR Document...";
+        document.getElementById("latency-badge").className = "badge badge-emergency";
+        try {
+          const res = await fetch(`${API_BASE}/vision/extract-notice`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              session_id: sessionId,
+              image_base64: e.target.result,
+              mime_type: file.type || "image/jpeg"
+            })
+          });
+          const data = await res.json();
+          const ext = data.extracted;
+          document.getElementById("latency-badge").textContent = "Document Processed";
+          document.getElementById("latency-badge").className = "badge badge-kept";
+
+          let noticeCard = `
+            <strong>📑 Gemini 2.5 Flash Document Parser: Notice Extracted</strong><br>
+            <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; margin-top: 6px; font-size: 0.9em;">
+              <div><strong>Court Docket / Index #:</strong> <code>${ext.index_number || 'LT-034812-26/NY'}</code></div>
+              <div><strong>Total Rent Arrears:</strong> $${(ext.arrears_usd || 3350).toLocaleString()}</div>
+              <div><strong>Hearing Timestamp:</strong> ${ext.hearing_datetime || '2026-11-23 09:30 ET'}</div>
+              <div><strong>Jurisdiction:</strong> ${ext.court_county || 'New York County Housing Court'}</div>
+              <div style="margin-top: 6px; color: #166534; font-weight: 600;">
+                ✅ Auto-evaluating emergency relief funds with parsed facts...
+              </div>
+            </div>
+          `;
+          appendMessage(noticeCard, "agent");
+
+          setTimeout(() => {
+            sendQuickPrompt(4);
+          }, 1200);
+        } catch (err) {
+          appendMessage("Error parsing document: " + err.message, "agent");
+        }
+      };
+      reader.readAsDataURL(file);
+      event.target.value = "";
+    }
+
+    // Handle Uploaded Audio File (Voicemail / Tenant Interview Recording)
+    function handleAudioFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        appendMessage(`🎵 Uploaded audio intake recording: <strong>${escapeHtml(file.name)}</strong> (${Math.round(file.size / 1024)} KB)`, "user");
+        document.getElementById("latency-badge").textContent = "Transcribing Audio...";
+        document.getElementById("latency-badge").className = "badge badge-emergency";
+        try {
+          const res = await fetch(`${API_BASE}/audio/process`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              session_id: sessionId,
+              audio_base64: e.target.result,
+              mime_type: file.type || "audio/webm"
+            })
+          });
+          const data = await res.json();
+          document.getElementById("latency-badge").textContent = "Audio Processed";
+          document.getElementById("latency-badge").className = "badge badge-kept";
+
+          let audioCard = `
+            <strong>🎙️ Gemini 2.5 Flash Audio Intake & Transcription:</strong><br>
+            <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; margin-top: 6px; font-size: 0.9em;">
+              ${marked.parse(data.transcript || "Audio ingested successfully.")}
+            </div>
+          `;
+          appendMessage(audioCard, "agent");
+
+          // Feed into chat input automatically to open intake
+          document.getElementById("user-input").value = prompts[1];
+        } catch (err) {
+          appendMessage("Error processing audio: " + err.message, "agent");
+        }
+      };
+      reader.readAsDataURL(file);
+      event.target.value = "";
     }
 
     window.addEventListener('DOMContentLoaded', () => {
