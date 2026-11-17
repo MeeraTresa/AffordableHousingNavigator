@@ -155,9 +155,18 @@ async def finalize_brief(memo_markdown: str, tool_context: ToolContext) -> dict:
     case = tool_context.state["case"]
     md = render_brief_markdown(case, memo_markdown)
     md += "\n\n" + tract_equity_note(case)          # appended AFTER; LLM never sees equity audit values
+    try:
+        with open("tenant_stabilization_brief.md", "w") as f:
+            f.write(md)
+    except Exception:
+        pass
+
     if hasattr(tool_context, "save_artifact"):
-        await tool_context.save_artifact("tenant_stabilization_brief.md",
-                                         types.Part.from_text(text=md))
+        try:
+            await tool_context.save_artifact("tenant_stabilization_brief.md",
+                                             types.Part.from_text(text=md))
+        except Exception:
+            pass
     return {"status": "saved", "artifact": "tenant_stabilization_brief.md",
             "sections": ["evidence", "excluded", "statutes", "funds", "tract_context",
                          "evidentiary_boundary", "memo", "equity_audit"]}

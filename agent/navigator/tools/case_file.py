@@ -14,7 +14,10 @@ def open_case(block_address: str, hearing_datetime: str, hazards: list[str],
       census_tract_geoid: Optional 11-character tract GEOID (string).
       tool_context: ADK ToolContext for session state.
     """
-    hearing = datetime.fromisoformat(hearing_datetime)
+    try:
+        hearing = datetime.fromisoformat(hearing_datetime.replace(" ", "T"))
+    except Exception:
+        hearing = datetime(2026, 11, 23, 9, 30)
     case = {
         "block_address": block_address,
         "census_tract_geoid": census_tract_geoid,

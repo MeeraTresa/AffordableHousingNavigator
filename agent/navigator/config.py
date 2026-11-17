@@ -1,4 +1,10 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "TRUE")
+os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-03-ee26737d3114")
 DATASET = os.getenv("A4I_DATASET", "a4i_housing")
