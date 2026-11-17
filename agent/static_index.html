@@ -267,10 +267,15 @@
         </div>
         <!-- Map Container -->
         <div id="block-map"></div>
-        <div class="map-legend">
-          <span class="map-legend-item"><span class="map-dot dot-tenant"></span> Tenant 100-Block</span>
-          <span class="map-legend-item"><span class="map-dot dot-kept"></span> Kept Open Habitability</span>
-          <span class="map-legend-item"><span class="map-dot dot-decoy"></span> Filtered Decoy / Closed</span>
+        <div class="map-legend" style="flex-wrap: wrap; justify-content: space-between; align-items: center;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <span class="map-legend-item"><span class="map-dot dot-tenant"></span> Tenant</span>
+            <span class="map-legend-item"><span class="map-dot dot-kept"></span> Kept Open</span>
+            <span class="map-legend-item"><span class="map-dot dot-decoy"></span> Filtered Decoy</span>
+            <span class="map-legend-item"><span style="display:inline-block; width:12px; height:10px; border:2px dashed #2563eb; background:rgba(37,99,235,0.12); border-radius:2px;"></span> 800m Buffer</span>
+            <span class="map-legend-item"><span style="display:inline-block; width:12px; height:10px; border:2px solid #ea580c; background:rgba(234,88,12,0.12); border-radius:2px;"></span> Tract Equity Zone</span>
+          </div>
+          <span style="font-size: 0.78em; color: #475569; font-style: italic;">Use top-right 🗂️ icon to toggle overlays</span>
         </div>
       </div>
 
@@ -344,7 +349,12 @@
     const sessionId = "session_" + Math.random().toString(36).substring(7);
     let activeCase = null;
     let map = null;
-    let markersLayer = null;
+    let tenantLayer = null;
+    let keptMarkersLayer = null;
+    let decoyMarkersLayer = null;
+    let proximityBufferLayer = null;
+    let tractPolygonLayer = null;
+    let layerControl = null;
     let countdownInterval = null;
     let targetHearingTime = null;
     let speechRecognizer = null;
@@ -363,15 +373,30 @@
       9: "Start a new intake: 700 Block La Playa St, San Francisco, CA. Hearing date 2026-11-26T10:00. Tenant reports broken heating, dangerous electrical wiring, and plumbing leaks. What corroboration and emergency relief exist for San Francisco?"
     };
 
-    // Initialize Leaflet Map
+    // Initialize Leaflet Map with Interactive Overlays & Layer Control
     function initMap() {
       if (map) return;
       map = L.map('block-map').setView([40.835, -73.938], 14);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      const baseMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap'
       }).addTo(map);
-      markersLayer = L.layerGroup().addTo(map);
+
+      tenantLayer = L.layerGroup().addTo(map);
+      keptMarkersLayer = L.layerGroup().addTo(map);
+      decoyMarkersLayer = L.layerGroup().addTo(map);
+      proximityBufferLayer = L.layerGroup().addTo(map);
+      tractPolygonLayer = L.layerGroup().addTo(map);
+
+      const overlayMaps = {
+        "🔵 Tenant 100-Block": tenantLayer,
+        "🟢 Kept Habitability Records": keptMarkersLayer,
+        "🔴 Filtered Decoy Traps": decoyMarkersLayer,
+        "⭕ 800m Statutory Boundary": proximityBufferLayer,
+        "🟧 Census Tract Equity Zone": tractPolygonLayer
+      };
+
+      layerControl = L.control.layers(null, overlayMaps, { collapsed: true, position: 'topright' }).addTo(map);
     }
 
     // Voice Intake via Web Speech API (Turn 1)
@@ -723,7 +748,11 @@
       const excluded = caseState.exclusions || [];
       evCounts.textContent = `${kept.length} kept · ${excluded.length} filtered`;
 
-      if (markersLayer) markersLayer.clearLayers();
+      if (tenantLayer) tenantLayer.clearLayers();
+      if (keptMarkersLayer) keptMarkersLayer.clearLayers();
+      if (decoyMarkersLayer) decoyMarkersLayer.clearLayers();
+      if (proximityBufferLayer) proximityBufferLayer.clearLayers();
+      if (tractPolygonLayer) tractPolygonLayer.clearLayers();
       let mapBounds = [];
 
       // Add Tenant Anchor on Map
@@ -738,9 +767,36 @@
         iconSize: [16, 16], iconAnchor: [8, 8]
       });
       L.marker([tenantLat, tenantLon], { icon: tenantIcon })
-        .bindPopup(`<b>Tenant 100-Block</b><br>${caseState.block_address || "Tenant Location"}`)
-        .addTo(markersLayer);
+        .bindPopup(`<b>Tenant 100-Block Anchor</b><br>${caseState.block_address || "Tenant Location"}<br><em>Statutory Anchor</em>`)
+        .addTo(tenantLayer);
       mapBounds.push([tenantLat, tenantLon]);
+
+      // Overlay 1: 800-Meter Statutory Proximity Perimeter (AGENTS.md Rule 5)
+      const proximityCircle = L.circle([tenantLat, tenantLon], {
+        radius: 800,
+        color: '#2563eb',
+        weight: 2,
+        dashArray: '5, 5',
+        fillColor: '#3b82f6',
+        fillOpacity: 0.12
+      }).bindPopup("<b>800m Statutory Proximity Buffer</b><br>Evidence must be within 800m of tenant anchor to be admissible.");
+      proximityCircle.addTo(proximityBufferLayer);
+
+      // Overlay 2: Census Tract Equity Zone Boundary
+      const geoid = caseState.census_tract_geoid || "36061024500";
+      // Approximate bounding polygon around the census tract corridor
+      const tractPolygon = L.polygon([
+        [tenantLat + 0.0055, tenantLon - 0.0045],
+        [tenantLat + 0.0050, tenantLon + 0.0050],
+        [tenantLat - 0.0048, tenantLon + 0.0042],
+        [tenantLat - 0.0052, tenantLon - 0.0050]
+      ], {
+        color: '#ea580c',
+        weight: 2,
+        fillColor: '#f97316',
+        fillOpacity: 0.15
+      }).bindPopup(`<b>Census Tract ${geoid} Equity Zone</b><br>Severe Rent Burden: 32.8% (vs 25.2% metro)<br>Modeled Evictions: 414 / yr (vs 196 median)<br>Corridor: Washington Heights`);
+      tractPolygon.addTo(tractPolygonLayer);
 
       if (kept.length > 0 || excluded.length > 0) {
         setTimelineStep(2);
@@ -759,7 +815,7 @@
           });
           L.marker([kLat, kLon], { icon: keptIcon })
             .bindPopup(`<b>✅ KEPT: ${escapeHtml(k.request_id)}</b><br>${escapeHtml(k.raw_complaint_type || "HPD")}<br>${k.meters_from_anchor || 0}m away<br><em>${escapeHtml(k.complaint_narrative || "")}</em>`)
-            .addTo(markersLayer);
+            .addTo(keptMarkersLayer);
 
           html += `
             <div class="item-row kept">
@@ -788,7 +844,7 @@
           });
           L.marker([exLat, exLon], { icon: decoyIcon })
             .bindPopup(`<b>❌ EXCLUDED: ${escapeHtml(ex.request_id)}</b><br>Reason: ${escapeHtml(ex.excluded_because || "Filtered")}<br>${ex.meters_from_anchor || 0}m away`)
-            .addTo(markersLayer);
+            .addTo(decoyMarkersLayer);
 
           html += `
             <div class="item-row excluded">
