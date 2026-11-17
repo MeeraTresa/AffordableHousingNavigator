@@ -4,35 +4,57 @@
   <meta charset="UTF-8">
   <title>Stabilization Navigator · Multi-City Housing Intake Co-Pilot</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <style>
-    body { max-width: 1400px; margin: auto; padding: 16px 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 15px; }
+    body { max-width: 1440px; margin: auto; padding: 16px 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 15px; }
     .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.78em; font-weight: bold; background: #e0e0e0; color: #333; }
     .badge-eligible { background: #d4edda; color: #155724; font-weight: 700; }
+    .badge-conditional { background: #fff3cd; color: #856404; font-weight: 700; }
     .badge-ineligible { background: #f8d7da; color: #721c24; }
     .badge-emergency { background: #dc3545; color: white; }
     .badge-standard { background: #17a2b8; color: white; }
     .badge-kept { background: #d1ecf1; color: #0c5460; font-weight: 600; }
-    .badge-decoy { background: #fff3cd; color: #856404; font-weight: 600; }
+    .badge-decoy { background: #f8d7da; color: #721c24; font-weight: 600; }
     .badge-prov { background: #e8eaed; color: #202124; font-family: monospace; font-size: 0.75em; }
 
     /* Layout */
-    .app-layout { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; margin-top: 14px; }
-    @media (max-width: 950px) { .app-layout { grid-template-columns: 1fr; } }
+    .app-layout { display: grid; grid-template-columns: 1.05fr 1.15fr; gap: 20px; margin-top: 14px; }
+    @media (max-width: 1020px) { .app-layout { grid-template-columns: 1fr; } }
+
+    /* Header Bar & Timeline */
+    .header-bar { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .timeline-bar { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 16px; margin: 8px 0; gap: 8px; flex-wrap: wrap; }
+    .timeline-step { display: flex; align-items: center; gap: 6px; font-size: 0.85em; color: #64748b; font-weight: 600; }
+    .timeline-step.active { color: #1e40af; }
+    .timeline-step.completed { color: #166534; }
+    .step-circle { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8em; background: #e2e8f0; color: #475569; }
+    .timeline-step.active .step-circle { background: #2563eb; color: white; box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+    .timeline-step.completed .step-circle { background: #16a34a; color: white; }
+    .step-arrow { color: #cbd5e1; font-weight: bold; }
+
+    /* Hearing Clock Banner */
+    .clock-banner { display: flex; align-items: center; justify-content: space-between; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 0.9em; flex-wrap: wrap; gap: 8px; }
+    .clock-banner.emergency { background: #fef2f2; border-color: #fecaca; }
+    .countdown-display { font-size: 1.15em; font-weight: bold; color: #1e3a8a; font-family: monospace; }
+    .clock-banner.emergency .countdown-display { color: #991b1b; }
 
     /* Chat Column */
     .chat-col { display: flex; flex-direction: column; }
-    .chat-box { height: 600px; border: 1px solid #ccc; border-radius: 8px; padding: 14px; overflow-y: auto; background: #fafafa; display: flex; flex-direction: column; gap: 12px; }
+    .chat-box { height: 580px; border: 1px solid #ccc; border-radius: 8px; padding: 14px; overflow-y: auto; background: #fafafa; display: flex; flex-direction: column; gap: 12px; }
     .msg { padding: 12px 14px; border-radius: 8px; max-width: 90%; line-height: 1.5; word-wrap: break-word; }
     .msg-user { align-self: flex-end; background: #e3f2fd; border-bottom-right-radius: 2px; }
     .msg-agent { align-self: flex-start; background: #ffffff; border: 1px solid #e0e0e0; border-bottom-left-radius: 2px; }
     .msg-tool { align-self: center; font-size: 0.8em; color: #555; background: #f1f3f5; border: 1px solid #dee2e6; border-radius: 12px; padding: 3px 10px; }
     .input-row { display: flex; gap: 8px; margin-top: 10px; }
     .input-row input { flex: 1; }
-    .quick-prompts { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .quick-prompts { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
     .quick-btn { font-size: 0.8em; padding: 5px 11px; cursor: pointer; background: #f4f4f4; border: 1px solid #ccc; border-radius: 12px; transition: background 0.15s; }
     .quick-btn:hover:not(:disabled) { background: #e2e2e2; }
     .quick-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .guided-demo-btn { background: #1e40af !important; color: white !important; font-weight: bold; border-color: #1e3a8a !important; }
+    .guided-demo-btn:hover:not(:disabled) { background: #1d4ed8 !important; }
 
     /* Dashboard Column */
     .dashboard-col { display: flex; flex-direction: column; gap: 14px; }
@@ -42,30 +64,65 @@
     .dash-field strong { color: #555; }
     .tag-cloud { display: flex; gap: 4px; flex-wrap: wrap; }
     
+    /* Map Styles */
+    #block-map { height: 260px; width: 100%; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 8px; }
+    .map-legend { display: flex; gap: 12px; font-size: 0.8em; margin-top: 6px; justify-content: flex-end; color: #475569; }
+    .map-legend-item { display: flex; align-items: center; gap: 4px; }
+    .map-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .dot-tenant { background: #2563eb; }
+    .dot-kept { background: #16a34a; }
+    .dot-decoy { background: #dc2626; }
+
     /* Lists */
     .item-list { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; margin-top: 6px; }
     .item-row { border: 1px solid #eee; border-radius: 6px; padding: 8px 10px; background: #fafafa; font-size: 0.86em; }
-    .item-row.excluded { opacity: 0.88; background: #fffdf5; border-left: 3px solid #ffc107; }
+    .item-row.excluded { opacity: 0.88; background: #fffdf5; border-left: 3px solid #dc3545; }
     .item-row.kept { border-left: 3px solid #28a745; background: #fbfdfb; }
     .item-row.eligible { border-left: 3px solid #28a745; background: #f9fff9; }
+    .item-row.conditional { border-left: 3px solid #f59e0b; background: #fffbeb; }
     .item-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 3px; }
     .item-desc { color: #555; margin-bottom: 4px; font-size: 0.92em; }
-    .item-reason { color: #856404; font-size: 0.85em; font-style: italic; }
+    .item-reason { color: #b91c1c; font-size: 0.85em; font-weight: 500; }
 
-    /* Equity Section */
-    .equity-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 6px; font-size: 0.82em; text-align: center; }
+    /* Checklist */
+    .checklist-container { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; font-size: 0.85em; }
+    .check-item { display: flex; align-items: flex-start; gap: 6px; padding: 3px 0; }
+    .check-icon { font-size: 1.05em; line-height: 1; }
+    .check-pass { color: #16a34a; }
+    .check-fail { color: #dc2626; }
+    .check-cond { color: #d97706; }
+
+    /* Visual Equity Audit Comparison Bars */
+    .bar-comparison-group { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+    .bar-row { display: flex; flex-direction: column; gap: 3px; font-size: 0.85em; }
+    .bar-label-line { display: flex; justify-content: space-between; font-weight: 500; color: #334155; }
+    .bar-track { height: 16px; background: #f1f5f9; border-radius: 8px; overflow: hidden; display: flex; position: relative; }
+    .bar-fill { height: 100%; border-radius: 8px; transition: width 0.6s ease; }
+    .bar-fill-tract { background: #dc2626; }
+    .bar-fill-metro { background: #64748b; }
+    .equity-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; font-size: 0.82em; text-align: center; }
     .equity-box { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 4px 6px; }
     .equity-box span { display: block; font-weight: bold; font-size: 1.1em; color: #1a73e8; }
 
-    /* Modals & Print */
-    .brief-actions { display: flex; gap: 8px; margin-top: 10px; }
-    .brief-actions button { font-size: 0.85em; padding: 6px 12px; }
+    /* Document Brief Pane */
+    .doc-pane { border: 2px solid #cbd5e1; border-radius: 8px; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; }
+    .doc-header-band { background: #0f172a; color: white; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; }
+    .doc-seal-title { display: flex; align-items: center; gap: 10px; }
+    .doc-seal { font-size: 1.6em; }
+    .doc-body { padding: 20px 24px; font-size: 0.9em; line-height: 1.6; max-height: 520px; overflow-y: auto; color: #1e293b; }
+    .doc-body h1 { font-size: 1.35em; border-bottom: 2px solid #0f172a; padding-bottom: 6px; margin-top: 0; }
+    .doc-body h2 { font-size: 1.15em; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 16px; }
+    .doc-body table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.88em; }
+    .doc-body th, .doc-body td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
+    .doc-body th { background: #f8fafc; font-weight: 600; }
+    .doc-toolbar { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 10px 16px; display: flex; justify-content: flex-end; gap: 10px; }
+
     .disclaimer-banner { background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 8px 12px; border-radius: 6px; font-size: 0.82em; margin-bottom: 10px; }
     .prov-bar { font-size: 0.76em; color: #666; margin-top: 6px; display: flex; gap: 10px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
-  <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;">
+  <div class="header-bar">
     <div>
       <h2 style="margin-bottom: 2px;">Stabilization Navigator</h2>
       <p style="margin-top: 0; color: #555; font-size: 0.92em;">
@@ -80,17 +137,58 @@
     </div>
   </div>
 
+  <!-- Interactive Eviction Defense Timeline (Step 3) -->
+  <div class="timeline-bar" id="defense-timeline">
+    <div class="timeline-step active" id="step-1">
+      <div class="step-circle">1</div>
+      <span>Tenant Intake</span>
+    </div>
+    <span class="step-arrow">→</span>
+    <div class="timeline-step" id="step-2">
+      <div class="step-circle">2</div>
+      <span>Vector Evidence</span>
+    </div>
+    <span class="step-arrow">→</span>
+    <div class="timeline-step" id="step-3">
+      <div class="step-circle">3</div>
+      <span>Applicable Law</span>
+    </div>
+    <span class="step-arrow">→</span>
+    <div class="timeline-step" id="step-4">
+      <div class="step-circle">4</div>
+      <span>Relief Checklist</span>
+    </div>
+    <span class="step-arrow">→</span>
+    <div class="timeline-step" id="step-5">
+      <div class="step-circle">5</div>
+      <span>Stabilization Brief</span>
+    </div>
+  </div>
+
+  <!-- Ticking Hearing Clock Banner (Step 3) -->
+  <div class="clock-banner" id="clock-banner">
+    <div>
+      <strong>⏰ Eviction Court Hearing Clock:</strong>
+      <span id="hearing-date-str" style="margin-left: 6px; color: #475569;">Awaiting hearing date from intake...</span>
+    </div>
+    <div>
+      <span id="countdown-label" style="font-size: 0.85em; color: #64748b; margin-right: 6px;">Remaining Runway:</span>
+      <span class="countdown-display" id="countdown-display">--h --m --s</span>
+    </div>
+  </div>
+
   <div class="disclaimer-banner">
     ⚖️ <strong>Legal Notice:</strong> Internal triage aid prepared for housing paralegals and tenant counselors with AI assistance. Not legal advice. All filings and defenses require attorney review.
   </div>
 
   <div class="quick-prompts">
-    <span style="font-size: 0.8em; align-self: center; font-weight: bold;">Quick Cases:</span>
+    <button class="quick-btn guided-demo-btn" id="btn-guided-demo" onclick="startGuidedDemo()">▶️ 3-Minute Guided Pitch Demo</button>
+    <span style="font-size: 0.8em; margin: 0 4px; font-weight: bold;">Quick Cases:</span>
     <button class="quick-btn" onclick="sendQuickPrompt(1)">1. Marisol Intake (Manhattan · Heat/Mold)</button>
     <button class="quick-btn" id="qbtn-2" onclick="sendQuickPrompt(2)">2. Add Household ($31k, 3 HH, $3,350 arrears)</button>
     <button class="quick-btn" id="qbtn-3" onclick="sendQuickPrompt(3)">3. Finalize Stabilization Brief</button>
-    <button class="quick-btn" onclick="sendQuickPrompt(4)">4. Random Case: Bronx (2500 Grand Concourse)</button>
-    <button class="quick-btn" onclick="sendQuickPrompt(5)">5. Standalone NYC Law Query (Heat & Hot Water)</button>
+    <button class="quick-btn" onclick="sendQuickPrompt(4)">4. San Francisco (700 Block La Playa)</button>
+    <button class="quick-btn" onclick="sendQuickPrompt(5)">5. Standalone Law Query (Heat & Hot Water)</button>
   </div>
 
   <div class="app-layout">
@@ -99,14 +197,14 @@
       <div class="chat-box" id="chat-box">
         <div class="msg msg-agent">
           <strong>Stabilization Navigator</strong><br>
-          Welcome. I am your intake co-pilot for tenant stabilization and eviction defense (live with data across 6 metropolitan areas: New York, San Francisco, Chicago, Austin, Baton Rouge, and Cincinnati).
+          Welcome. I am your intake co-pilot for tenant stabilization and eviction defense (active across 6 metropolitan areas: New York, San Francisco, Chicago, Austin, Baton Rouge, and Cincinnati).
           <br><br>
-          Provide your tenant's <strong>street address</strong> (e.g. <em>1042 St Nicholas Ave</em> or <em>2534 Grand Concourse</em>; unit numbers are automatically redacted to 100-blocks for tenant privacy), <strong>court hearing date</strong>, and <strong>habitability hazards</strong>. I will:
+          Provide your tenant's <strong>street address</strong> (e.g. <em>1042 St Nicholas Ave</em>; unit numbers are automatically redacted to 100-blocks for tenant privacy), <strong>court hearing date</strong>, and <strong>habitability hazards</strong>. I will:
           <ul style="margin: 6px 0 0 16px; padding: 0;">
             <li>Query BigQuery <code>complaints_embedded</code> via semantic vector search.</li>
-            <li>Deterministically filter out commercial and closed decoys within 800m.</li>
-            <li>Evaluate municipal emergency rental assistance and Right to Counsel programs.</li>
-            <li>Draft a comprehensive <strong>Tenant Stabilization Brief</strong> with post-output equity audit notes.</li>
+            <li>Deterministically filter out commercial and closed decoys within 800m and pin them on the interactive street map.</li>
+            <li>Evaluate municipal emergency rental assistance with live requirement checklists.</li>
+            <li>Draft a comprehensive <strong>Tenant Stabilization Brief</strong> ready for attorney presentation.</li>
           </ul>
         </div>
       </div>
@@ -125,21 +223,28 @@
 
     <!-- Right Column: Rich Case UI & Live Dashboard -->
     <div class="dashboard-col">
-      <!-- 1. Intake Case Status -->
+      <!-- 1. Intake Case Status & Interactive Map (Step 2) -->
       <div class="dash-card">
         <h3>
-          <span>📌 Intake Case Status</span>
+          <span>📌 Intake Case & Street Map</span>
           <span id="case-badge" class="badge">No Active Case</span>
         </h3>
         <div id="case-details">
           <p style="color: #777; font-size: 0.88em; margin: 0;">No case opened. Click Prompt 1 or enter a tenant address.</p>
+        </div>
+        <!-- Map Container -->
+        <div id="block-map"></div>
+        <div class="map-legend">
+          <span class="map-legend-item"><span class="map-dot dot-tenant"></span> Tenant 100-Block</span>
+          <span class="map-legend-item"><span class="map-dot dot-kept"></span> Kept Open Habitability</span>
+          <span class="map-legend-item"><span class="map-dot dot-decoy"></span> Filtered Decoy / Closed</span>
         </div>
       </div>
 
       <!-- 2. Corroborating Evidence -->
       <div class="dash-card">
         <h3>
-          <span>🔎 Corroborating Evidence & Decoy Filter</span>
+          <span>🔎 Corroborating Evidence & Decoy Trap</span>
           <span id="evidence-counts" class="badge">0 records</span>
         </h3>
         <div id="evidence-container">
@@ -147,10 +252,10 @@
         </div>
       </div>
 
-      <!-- 3. Emergency Relief Program Match -->
+      <!-- 3. Emergency Relief Program Match with Dynamic Checklists (Step 5) -->
       <div class="dash-card">
         <h3>
-          <span>💰 Relief Program Eligibility</span>
+          <span>💰 Relief Eligibility Checklist</span>
           <span id="funds-count" class="badge">0 programs</span>
         </h3>
         <div id="funds-container">
@@ -158,10 +263,10 @@
         </div>
       </div>
 
-      <!-- 4. Corridor Equity Context -->
+      <!-- 4. Corridor Equity Visual Comparison (Step 4) -->
       <div class="dash-card">
         <h3>
-          <span>📊 Corridor Equity & Demographics</span>
+          <span>📊 Equity Audit Visual Comparison</span>
           <span id="equity-badge" class="badge">Awaiting Tract</span>
         </h3>
         <div id="equity-container">
@@ -169,21 +274,29 @@
         </div>
       </div>
 
-      <!-- 5. Finalized Brief Actions -->
-      <div class="dash-card" id="brief-card" style="display: none;">
-        <h3>
-          <span>📄 Finalized Tenant Stabilization Brief</span>
-          <span class="badge badge-eligible">READY</span>
-        </h3>
-        <p style="font-size: 0.88em; margin: 0 0 8px 0; color: #444;">
-          The legal-aid brief has been rendered with all 7 required sections and post-output equity audit.
-        </p>
-        <div class="brief-actions">
-          <button onclick="downloadBrief()" style="background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      <!-- 5. Finalized Brief Document Pane (Step 1) -->
+      <div class="doc-pane" id="brief-pane" style="display: none;">
+        <div class="doc-header-band">
+          <div class="doc-seal-title">
+            <span class="doc-seal">⚖️</span>
+            <div>
+              <div style="font-weight: bold; font-size: 1.1em; letter-spacing: 0.5px;">TENANT STABILIZATION BRIEF</div>
+              <div style="font-size: 0.8em; opacity: 0.85;">Legal-Aid Eviction Defense Intake Memorandum</div>
+            </div>
+          </div>
+          <div>
+            <span class="badge badge-eligible" style="font-size: 0.8em;">ATTORNEY-READY</span>
+          </div>
+        </div>
+        <div class="doc-body" id="brief-doc-content">
+          <!-- Rendered brief markdown -->
+        </div>
+        <div class="doc-toolbar">
+          <button onclick="downloadBrief()" style="background: #16a34a; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 0.88em; font-weight: 600;">
             📥 Download Brief (.md)
           </button>
-          <button onclick="printBrief()" style="background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-            🖨️ View / Print Brief
+          <button onclick="printBrief()" style="background: #2563eb; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 0.88em; font-weight: 600;">
+            🖨️ Print Document
           </button>
         </div>
       </div>
@@ -194,6 +307,10 @@
     const API_BASE = window.location.origin;
     const sessionId = "session_" + Math.random().toString(36).substring(7);
     let activeCase = null;
+    let map = null;
+    let markersLayer = null;
+    let countdownInterval = null;
+    let targetHearingTime = null;
 
     const prompts = {
       1: "Hello! I am a paralegal doing intake for tenant Marisol at 1000 Block St Nicholas Avenue, Manhattan. Court hearing is 2026-11-23T09:30. She has had freezing cold radiators, visible mold around the bathtub, and water leaking through the bathroom wall. Can you open her case and search habitability evidence?",
@@ -203,9 +320,97 @@
       5: "Under New York housing law (NYC Admin Code & RPL 235-b), what are the legal remedies and landlord cure periods when heat and hot water are shut off?"
     };
 
+    // Initialize Leaflet Map
+    function initMap() {
+      if (map) return;
+      map = L.map('block-map').setView([40.835, -73.938], 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+      markersLayer = L.layerGroup().addTo(map);
+    }
+
+    // Step 3: Ticking Hearing Clock
+    function startHearingCountdown(hearingIso) {
+      if (!hearingIso) return;
+      targetHearingTime = new Date(hearingIso).getTime();
+      document.getElementById("hearing-date-str").textContent = `${hearingIso.replace("T", " ")} ET`;
+
+      if (countdownInterval) clearInterval(countdownInterval);
+      updateClock();
+      countdownInterval = setInterval(updateClock, 1000);
+    }
+
+    function updateClock() {
+      if (!targetHearingTime) return;
+      const now = new Date().getTime();
+      const diff = targetHearingTime - now;
+      const display = document.getElementById("countdown-display");
+      const banner = document.getElementById("clock-banner");
+
+      if (diff <= 0) {
+        display.textContent = "HEARING IN SESSION";
+        banner.className = "clock-banner emergency";
+        return;
+      }
+
+      const totalHours = Math.floor(diff / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+      display.textContent = `${totalHours}h ${mins}m ${secs}s`;
+      if (totalHours < 72) {
+        banner.className = "clock-banner emergency";
+      } else {
+        banner.className = "clock-banner";
+      }
+    }
+
+    // Step 3: Eviction Defense Timeline Progress
+    function setTimelineStep(stepNumber) {
+      for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById(`step-${i}`);
+        if (!el) continue;
+        el.className = "timeline-step";
+        if (i < stepNumber) {
+          el.className = "timeline-step completed";
+        } else if (i === stepNumber) {
+          el.className = "timeline-step active";
+        }
+      }
+    }
+
     function sendQuickPrompt(id) {
       document.getElementById("user-input").value = prompts[id];
       sendMessage();
+    }
+
+    // Step 6: 3-Minute Guided Pitch Demo Mode
+    async function startGuidedDemo() {
+      const demoBtn = document.getElementById("btn-guided-demo");
+      demoBtn.disabled = true;
+      demoBtn.textContent = "⏳ Running Pitch Demo...";
+
+      // Turn 1: Open Case & Search Evidence
+      appendMessage("Narrator: Turn 1 of 3 — Opening Marisol intake and executing vector search against BigQuery...", "tool");
+      document.getElementById("user-input").value = prompts[1];
+      await sendMessage();
+      await new Promise(r => setTimeout(r, 2200));
+
+      // Turn 2: Add Household & Match Relief
+      appendMessage("Narrator: Turn 2 of 3 — Ingesting household income ($31k) and arrears ($3,350). Deterministic Python rules evaluate statutory funds...", "tool");
+      document.getElementById("user-input").value = prompts[2];
+      await sendMessage();
+      await new Promise(r => setTimeout(r, 2200));
+
+      // Turn 3: Finalize Brief Climax
+      appendMessage("Narrator: Turn 3 of 3 — Finalizing Tenant Stabilization Brief document pane with corridor equity audit...", "tool");
+      document.getElementById("user-input").value = prompts[3];
+      await sendMessage();
+
+      demoBtn.textContent = "✅ Pitch Demo Complete";
+      demoBtn.disabled = false;
     }
 
     function appendMessage(text, role, toolCalls = []) {
@@ -222,9 +427,8 @@
 
       const msgDiv = document.createElement("div");
       msgDiv.className = `msg msg-${role}`;
-      const name = role === "user" ? "Paralegal / Counselor" : "Stabilization Navigator";
+      const name = role === "user" ? "Paralegal / Counselor" : (role === "tool" ? "Pitch Narration" : "Stabilization Navigator");
       
-      // Render markdown safely
       const renderedContent = typeof marked !== "undefined" ? marked.parse(text) : escapeHtml(text);
       msgDiv.innerHTML = `<strong>${name}</strong><br><div style="margin-top: 4px;">${renderedContent}</div>`;
       box.appendChild(msgDiv);
@@ -232,7 +436,7 @@
     }
 
     function escapeHtml(text) {
-      return text
+      return (text || "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
@@ -241,22 +445,27 @@
     function updateDashboardUI(caseState, equityInfo) {
       if (!caseState) return;
       activeCase = caseState;
+      initMap();
 
-      // 1. Case Status
+      // 1. Case Status & Hearing Clock
       const badge = document.getElementById("case-badge");
       const details = document.getElementById("case-details");
       const urgency = caseState.urgency || "standard";
       badge.textContent = urgency.toUpperCase();
       badge.className = `badge ${urgency.includes("emergency") ? "badge-emergency" : "badge-standard"}`;
 
+      if (caseState.hearing_datetime) {
+        startHearingCountdown(caseState.hearing_datetime);
+      }
+
       const hazardsHtml = (caseState.hazards || []).map(h => `<span class="badge">${h}</span>`).join(" ");
-      const hours = caseState.hours_to_hearing !== undefined ? `${Math.round(caseState.hours_to_hearing * 10) / 10} hrs (Eastern Time)` : "N/A";
+      const hours = caseState.hours_to_hearing !== undefined ? `${Math.round(caseState.hours_to_hearing * 10) / 10} hrs` : "N/A";
       const hh = caseState.household || {};
 
       details.innerHTML = `
         <div class="dash-field"><strong>Block Address:</strong> <span>${caseState.block_address || "N/A"}</span></div>
         <div class="dash-field"><strong>Census Tract:</strong> <span><code>${caseState.census_tract_geoid || "Looked up via block"}</code></span></div>
-        <div class="dash-field"><strong>Hearing:</strong> <span>${caseState.hearing_datetime || "N/A"} (in ${hours})</span></div>
+        <div class="dash-field"><strong>Hearing:</strong> <span>${caseState.hearing_datetime || "N/A"} (≈ ${hours} runway)</span></div>
         <div class="dash-field"><strong>Reported Hazards:</strong> <div class="tag-cloud">${hazardsHtml || "None reported"}</div></div>
         ${hh.annual_income_usd !== undefined ? `
           <hr style="margin: 8px 0; border: 0; border-top: 1px dashed #ddd;">
@@ -267,97 +476,141 @@
         ` : ""}
       `;
 
-      // 2. Corroborating Evidence
+      // Timeline progression
+      setTimelineStep(1);
+
+      // 2. Corroborating Evidence & Decoy Trap + Interactive Leaflet Map (Step 2)
       const evCounts = document.getElementById("evidence-counts");
       const evContainer = document.getElementById("evidence-container");
       const kept = caseState.evidence || [];
       const excluded = caseState.exclusions || [];
       evCounts.textContent = `${kept.length} kept · ${excluded.length} filtered`;
 
-      if (kept.length === 0 && excluded.length === 0) {
-        evContainer.innerHTML = `<p style="color: #777; font-size: 0.88em; margin: 0;">No evidence searched yet.</p>`;
-      } else {
+      if (markersLayer) markersLayer.clearLayers();
+      let mapBounds = [];
+
+      // Add Tenant Anchor on Map
+      let tenantLat = 40.8355, tenantLon = -73.9380;
+      if (kept.length > 0 && kept[0].latitude) {
+        tenantLat = kept[0].latitude;
+        tenantLon = kept[0].longitude;
+      }
+      const tenantIcon = L.divIcon({
+        className: 'custom-pin',
+        html: `<div style="background:#2563eb; width:16px; height:16px; border-radius:50%; border:3px solid white; box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>`,
+        iconSize: [16, 16], iconAnchor: [8, 8]
+      });
+      L.marker([tenantLat, tenantLon], { icon: tenantIcon })
+        .bindPopup(`<b>Tenant 100-Block</b><br>${caseState.block_address || "Tenant Location"}`)
+        .addTo(markersLayer);
+      mapBounds.push([tenantLat, tenantLon]);
+
+      if (kept.length > 0 || excluded.length > 0) {
+        setTimelineStep(2);
         let html = `<div class="item-list">`;
+        
+        // Plot Kept Records (Green Pins)
         for (const k of kept) {
-          const nycOpenUrl = `https://hpdonline.nyc.gov/hpdonline/`;
+          const kLat = k.latitude || (tenantLat + (Math.random() - 0.5) * 0.003);
+          const kLon = k.longitude || (tenantLon + (Math.random() - 0.5) * 0.003);
+          mapBounds.push([kLat, kLon]);
+
+          const keptIcon = L.divIcon({
+            className: 'custom-pin',
+            html: `<div style="background:#16a34a; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
+            iconSize: [14, 14], iconAnchor: [7, 7]
+          });
+          L.marker([kLat, kLon], { icon: keptIcon })
+            .bindPopup(`<b>✅ KEPT: ${escapeHtml(k.request_id)}</b><br>${escapeHtml(k.raw_complaint_type || "HPD")}<br>${k.meters_from_anchor || 0}m away<br><em>${escapeHtml(k.complaint_narrative || "")}</em>`)
+            .addTo(markersLayer);
+
           html += `
             <div class="item-row kept">
               <div class="item-header">
-                <span>✅ <a href="${nycOpenUrl}" target="_blank" rel="noopener" title="Verify on HPD Online">${k.request_id}</a> <span class="badge badge-kept">${k.raw_complaint_type || "HPD"}</span></span>
+                <span>✅ <strong>${k.request_id}</strong> <span class="badge badge-kept">${k.raw_complaint_type || "HPD"}</span></span>
                 <span>${k.meters_from_anchor || 0}m away</span>
               </div>
               <div class="item-desc">${escapeHtml(k.complaint_narrative || "")}</div>
-              <details>
-                <summary>Inspect record & verification details</summary>
-                <p style="font-size: 0.85em; margin: 4px 0;">
-                  <strong>Status:</strong> ${k.inspection_status || "Open"} | 
-                  <strong>Property:</strong> ${k.property_type || "Residential"} | 
-                  <strong>Opened:</strong> ${k.created_date || "2026-10-31"} | 
-                  <strong>Cosine Similarity:</strong> ${k.similarity !== undefined ? k.similarity : "0.78+"}<br>
-                  <a href="${nycOpenUrl}" target="_blank" rel="noopener">🔍 Verify on NYC HPD Online Portal ↗</a>
-                </p>
-              </details>
+              <div style="font-size: 0.84em; color: #555;">
+                <strong>Status:</strong> ${k.inspection_status || "Open"} · <strong>Cosine Similarity:</strong> ${k.similarity || "0.78+"}
+              </div>
             </div>
           `;
         }
+
+        // Plot Filtered Decoys (Red Pins) - The smart decoy trap!
         for (const ex of excluded) {
+          const exLat = ex.latitude || (tenantLat + (Math.random() - 0.5) * 0.006);
+          const exLon = ex.longitude || (tenantLon + (Math.random() - 0.5) * 0.006);
+          mapBounds.push([exLat, exLon]);
+
+          const decoyIcon = L.divIcon({
+            className: 'custom-pin',
+            html: `<div style="background:#dc2626; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
+            iconSize: [14, 14], iconAnchor: [7, 7]
+          });
+          L.marker([exLat, exLon], { icon: decoyIcon })
+            .bindPopup(`<b>❌ EXCLUDED: ${escapeHtml(ex.request_id)}</b><br>Reason: ${escapeHtml(ex.excluded_because || "Filtered")}<br>${ex.meters_from_anchor || 0}m away`)
+            .addTo(markersLayer);
+
           html += `
             <div class="item-row excluded">
               <div class="item-header">
-                <span>🚫 ${ex.request_id}</span>
-                <span class="badge badge-decoy">FILTERED</span>
+                <span>❌ <strong>${ex.request_id}</strong> <span class="badge badge-decoy">${ex.property_type || "Commercial"}</span></span>
+                <span>${ex.meters_from_anchor || 0}m away</span>
               </div>
-              <div class="item-reason">Excluded: ${escapeHtml(ex.excluded_because || "")}</div>
-              <details>
-                <summary>Decoy details (${ex.property_type || "N/A"}, ${ex.meters_from_anchor || 0}m)</summary>
-                <p style="font-size: 0.85em; margin: 4px 0;">${escapeHtml(ex.complaint_narrative || "")}</p>
-              </details>
+              <div class="item-desc">${escapeHtml(ex.complaint_narrative || "")}</div>
+              <div class="item-reason">🛡️ Excluded: ${escapeHtml(ex.excluded_because || "Filtered")}</div>
             </div>
           `;
         }
+
         html += `</div>`;
         evContainer.innerHTML = html;
+        if (map && mapBounds.length > 0) {
+          map.fitBounds(mapBounds, { padding: [25, 25] });
+        }
       }
 
-      // 3. Relief Funds
-      const fundsCount = document.getElementById("funds-count");
+      // 3. Relief Eligibility Checklist (Step 5: Dynamic rule checklist)
       const fundsContainer = document.getElementById("funds-container");
+      const fundsCount = document.getElementById("funds-count");
       const funds = caseState.funds || [];
-      fundsCount.textContent = `${funds.filter(f => f.status === "ELIGIBLE").length} eligible`;
+      fundsCount.textContent = `${funds.length} programs`;
 
-      const fundPortalLinks = {
-        "CityFHEPS": "https://www.nyc.gov/site/hra/help/cityfheps.page",
-        "One Shot Deal": "https://access.nyc.gov/programs/one-shot-deal/",
-        "Emergency Repair Program": "https://www.nyc.gov/site/hpd/services-and-information/emergency-repair-program-erp.page",
-        "Right to Counsel / Legal Aid": "https://www.nyc.gov/site/hra/help/legal-assistance.page"
-      };
-
-      if (funds.length === 0) {
-        fundsContainer.innerHTML = `<p style="color: #777; font-size: 0.88em; margin: 0;">Fund evaluation will run after household income is provided.</p>`;
-      } else {
+      if (funds.length > 0) {
+        setTimelineStep(4);
         let fHtml = `<div class="item-list">`;
         for (const f of funds) {
           const isEligible = f.status === "ELIGIBLE";
-          const progName = f.program_name || "";
-          let portalUrl = f.intake_url || "";
-          for (const [k, url] of Object.entries(fundPortalLinks)) {
-            if (progName.includes(k)) portalUrl = url;
-          }
+          const isCond = f.status === "NEEDS INFO";
+          const progName = f.program_name || f.bulletin_id;
+          const statusBadge = isEligible ? 'badge-eligible' : (isCond ? 'badge-conditional' : 'badge-ineligible');
+          const portalUrl = f.intake_url || "";
 
           fHtml += `
-            <div class="item-row ${isEligible ? 'eligible' : ''}">
+            <div class="item-row ${isEligible ? 'eligible' : (isCond ? 'conditional' : 'excluded')}">
               <div class="item-header">
-                <span>${isEligible ? '🟢' : '⚪'} ${escapeHtml(progName)}</span>
-                <span class="badge ${isEligible ? 'badge-eligible' : 'badge-ineligible'}">${f.status}</span>
+                <span>${isEligible ? '🟢' : (isCond ? '🟡' : '⚪')} <strong>${escapeHtml(progName)}</strong></span>
+                <span class="badge ${statusBadge}">${f.status}</span>
               </div>
               <div class="item-desc"><strong>Agency:</strong> ${escapeHtml(f.administering_agency || "")} · <strong>Cap:</strong> $${(f.max_award_usd || 0).toLocaleString()}</div>
-              <details>
-                <summary>View deterministic eligibility checklist (${f.checks?.length || 0} checks)</summary>
-                <ul style="margin: 4px 0 4px 16px; padding: 0; font-size: 0.85em;">
-                  ${(f.checks || []).map(c => `<li>${c.pass ? '✅' : '❌'} <strong>${escapeHtml(c.rule)}</strong>: ${escapeHtml(c.detail)}</li>`).join("")}
-                </ul>
-                ${portalUrl ? `<p style="margin: 4px 0 0 0; font-size: 0.85em;"><a href="${portalUrl}" target="_blank" rel="noopener">🌐 Official Program Application Portal ↗</a></p>` : ""}
-              </details>
+              
+              <!-- Checklist of deterministic statutory rules -->
+              <div class="checklist-container">
+                ${(f.checks || []).map(c => {
+                  let icon = "✅", cls = "check-pass";
+                  if (c.pass === false) { icon = "❌"; cls = "check-fail"; }
+                  else if (c.pass === null || c.pass === undefined) { icon = "⚠️"; cls = "check-cond"; }
+                  return `
+                    <div class="check-item ${cls}">
+                      <span class="check-icon">${icon}</span>
+                      <span><strong>${escapeHtml(c.rule)}:</strong> ${escapeHtml(c.detail)}</span>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+              ${portalUrl ? `<div style="margin-top: 6px; font-size: 0.85em;"><a href="${portalUrl}" target="_blank" rel="noopener">🌐 Program Application Portal ↗</a></div>` : ""}
             </div>
           `;
         }
@@ -365,16 +618,50 @@
         fundsContainer.innerHTML = fHtml;
       }
 
-      // 4. Corridor Equity
+      // 4. Corridor Equity Visual Comparison (Step 4: Side-by-Side Comparison Bars)
       if (equityInfo || caseState.tract_context) {
         const ti = equityInfo || caseState.tract_context || {};
         document.getElementById("equity-badge").textContent = `TRACT ${ti.census_tract_geoid || caseState.census_tract_geoid}`;
         document.getElementById("equity-badge").className = "badge badge-kept";
+
+        const tractBurden = ti.severe_rent_burden_pct || 32.8;
+        const metroBurden = ti.metro_severe_rent_burden_pct || 25.2;
+        const tractFilings = ti.annual_nonpayment_filings_modeled || 414;
+        const metroFilings = ti.median_tract_nonpayment_filings_modeled || 196;
+
         document.getElementById("equity-container").innerHTML = `
-          <div class="dash-field"><strong>Corridor:</strong> <span>${ti.county_name || "New York County"}</span></div>
-          <div class="dash-field"><strong>Severe Rent Burden:</strong> <span>${ti.severe_rent_burden_pct || 32.8}% (Metro baseline: ${ti.metro_severe_rent_burden_pct || 25.2}%)</span></div>
-          <div class="dash-field"><strong>Modeled Nonpayment Filings:</strong> <span>${ti.annual_nonpayment_filings_modeled || 414} / yr [Modeled] (Median: ${ti.median_tract_nonpayment_filings_modeled || 196})</span></div>
-          <div class="dash-field"><strong>No-Vehicle Transit Need:</strong> <span>${ti.no_vehicle_pct || 91.6}% of households</span></div>
+          <div class="dash-field"><strong>Corridor:</strong> <span>${ti.county_name || "New York County"} (Tract ${ti.census_tract_geoid || caseState.census_tract_geoid})</span></div>
+          
+          <div class="bar-comparison-group">
+            <!-- Severe Rent Burden Comparison -->
+            <div class="bar-row">
+              <div class="bar-label-line">
+                <span>Severe Rent Burden (Rent > 50% income):</span>
+                <span><strong>${tractBurden}%</strong> vs ${metroBurden}% Metro</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill bar-fill-tract" style="width: ${Math.min(tractBurden * 2, 100)}%;" title="Tract: ${tractBurden}%"></div>
+              </div>
+              <div class="bar-track" style="height: 10px; margin-top: 2px;">
+                <div class="bar-fill bar-fill-metro" style="width: ${Math.min(metroBurden * 2, 100)}%;" title="Metro Baseline: ${metroBurden}%"></div>
+              </div>
+            </div>
+
+            <!-- Modeled Nonpayment Eviction Filings Comparison -->
+            <div class="bar-row">
+              <div class="bar-label-line">
+                <span>Annual Modeled Eviction Filings:</span>
+                <span><strong>${tractFilings}</strong> vs ${metroFilings} Metro Median</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill bar-fill-tract" style="width: ${Math.min((tractFilings / 500) * 100, 100)}%;" title="Tract: ${tractFilings}"></div>
+              </div>
+              <div class="bar-track" style="height: 10px; margin-top: 2px;">
+                <div class="bar-fill bar-fill-metro" style="width: ${Math.min((metroFilings / 500) * 100, 100)}%;" title="Metro Median: ${metroFilings}"></div>
+              </div>
+            </div>
+          </div>
+
           <div class="equity-grid">
             <div class="equity-box"><span>${ti.black_pct || 22.4}%</span>Black</div>
             <div class="equity-box"><span>${ti.hispanic_pct || 68.1}%</span>Hispanic</div>
@@ -384,9 +671,14 @@
         `;
       }
 
-      // 5. Brief Card
+      // 5. Finalized Brief Document Pane Climax (Step 1)
       if (caseState.brief_markdown) {
-        document.getElementById("brief-card").style.display = "block";
+        setTimelineStep(5);
+        const briefPane = document.getElementById("brief-pane");
+        const briefDocContent = document.getElementById("brief-doc-content");
+        briefPane.style.display = "block";
+        briefDocContent.innerHTML = marked.parse(caseState.brief_markdown);
+        briefPane.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }
 
@@ -447,8 +739,15 @@
           <title>Tenant Stabilization Brief</title>
           <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
           <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
+          <style>
+            body { max-width: 900px; margin: auto; padding: 40px; font-family: serif; color: #111; }
+            h1 { font-size: 1.6em; border-bottom: 2px solid #000; padding-bottom: 6px; }
+            table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+            th, td { border: 1px solid #333; padding: 6px 8px; font-size: 0.9em; }
+            th { background: #eee; }
+          </style>
         </head>
-        <body style="padding: 30px;">
+        <body>
           <div id="content"></div>
           <script>
             document.getElementById("content").innerHTML = marked.parse(${JSON.stringify(activeCase.brief_markdown)});
@@ -459,6 +758,10 @@
       `);
       win.document.close();
     }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initMap();
+    });
   </script>
 </body>
 </html>
