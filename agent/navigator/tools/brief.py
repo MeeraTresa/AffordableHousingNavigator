@@ -39,12 +39,17 @@ def render_brief_markdown(case: dict, memo_markdown: str) -> str:
     # Section 2: Applicable law
     statutes_items = []
     for s in case.get("statutes", []):
-        statutes_items.append(f"- **{s.get('code_citation', '')}:** {s.get('ordinance_title', '')} — {s.get('raw_statute_text', '')}")
+        cite = s.get('code_citation', '')
+        title = s.get('ordinance_title', '')
+        text = s.get('raw_statute_text', '')
+        url = s.get('statute_url')
+        link_str = f" [🔗 Official Text]({url})" if url else ""
+        statutes_items.append(f"- **{cite}:** {title}{link_str} — {text}")
     if not statutes_items:
         statutes_items = [
-            "- **RPL § 235-b / RPAPL § 711(2):** warranty of habitability → rent abatement; 14-day written demand prerequisite.",
-            "- **NYC Admin. Code § 27-2115 / § 26-1302:** Class C correction within 24 h (Class B: 30 days); Right to Counsel ≤200% FPL.",
-            "- **SSL § 143-b / MDL § 302-a:** defense where rent-impairing violations remain uncorrected *(applicability: attorney to confirm)*.",
+            "- **RPL § 235-b / RPAPL § 711(2):** [🔗 NY Senate RPL § 235-b](https://www.nysenate.gov/legislation/laws/RPP/235-B) — warranty of habitability → rent abatement; 14-day written demand prerequisite ([RPAPL § 711(2)](https://www.nysenate.gov/legislation/laws/RPA/711)).",
+            "- **NYC Admin. Code § 27-2115 / § 26-1302:** [🔗 NYC Admin Code § 27-2115](https://codelibrary.amlegal.com/codes/newyorkcity/latest/NYCadmin/0-0-0-48227) — Class C correction within 24 h (Class B: 30 days); Right to Counsel ≤200% FPL.",
+            "- **SSL § 143-b / MDL § 302-a:** [🔗 NY Senate SSL § 143-b](https://www.nysenate.gov/legislation/laws/SOS/143-B) — Spiegel defense where rent-impairing violations remain uncorrected *(applicability: attorney to confirm)*.",
         ]
     statutes_list = "\n".join(statutes_items)
 

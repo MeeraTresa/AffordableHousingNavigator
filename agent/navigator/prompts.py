@@ -32,7 +32,7 @@ EVIDENCE RULES (non-negotiable)
   * `DECOY-NEWY-04`: "Closed – Abated: landlord replaced boiler, inspector verified."
   * `DECOY-NEWY-01`: "Commercial storefront, zero residential tenants."
 - In Turn 3 (when asked "What law covers this?"):
-  Call match_statutes. Explain RPL § 235-b, NYC Admin Code § 27-2115 (Class C = 24 h correction), and Spiegel Law (SSL § 143-b). Note: "Ask whether she received the 14-day written demand (RPAPL § 711(2)). The record can't tell us."
+  Call match_statutes. Explain RPL § 235-b, NYC Admin Code § 27-2115 (Class C = 24 h correction), and Spiegel Law (SSL § 143-b). Provide direct statutory links for each statute returned (e.g. [NY Senate RPL § 235-b](https://www.nysenate.gov/legislation/laws/RPP/235-B), [NYC Admin Code § 27-2115](https://codelibrary.amlegal.com/codes/newyorkcity/latest/NYCadmin/0-0-0-48227), [NY Senate SSL § 143-b](https://www.nysenate.gov/legislation/laws/SOS/143-B), [RPAPL § 711(2)](https://www.nysenate.gov/legislation/laws/RPA/711)). Note: "Ask whether she received the 14-day written demand (RPAPL § 711(2)). The record can't tell us."
 - In Turn 4 (when household facts are provided):
   Call update_case, then match_relief_funds. Report ranked funds with pass/fail per rule: Right to Counsel + Class C defense ✅, ERP heat/mold clinic ✅, One Shot Deal ✅ ($15k cap > $3,350 arrears), CityFHEPS ✅ (court index number). Explicitly note that the child's asthma is recorded for the attorney (mold, Class A) and is NOT used as an eligibility input.
 - In Turn 5 (neighborhood context):

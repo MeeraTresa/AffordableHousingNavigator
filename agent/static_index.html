@@ -331,6 +331,17 @@
         </div>
       </div>
 
+      <!-- 2b. Applicable Housing Law & Statutory Defenses (with Direct Links) -->
+      <div class="dash-card" id="statutes-card">
+        <h3>
+          <span>📜 Statutory Defenses & Applicable Law</span>
+          <span id="statutes-count" class="badge">0 statutes</span>
+        </h3>
+        <div id="statutes-container">
+          <p style="color: #777; font-size: 0.88em; margin: 0;">Matched against habitability hazards & nonpayment posture (Turn 3).</p>
+        </div>
+      </div>
+
       <!-- 3. Emergency Relief Program Match with Dynamic Checklists (Step 5) -->
       <div class="dash-card">
         <h3>
@@ -933,6 +944,11 @@
               <div style="font-size: 0.84em; color: #555;">
                 <strong>Status:</strong> ${k.inspection_status || "Open"} · <strong>Cosine Similarity:</strong> ${k.similarity || "0.78+"}
               </div>
+              <div style="margin-top: 4px; font-size: 0.82em;">
+                <a href="https://hpdonline.nyc.gov/hpdonline/" target="_blank" rel="noopener" style="color: #16a34a; font-weight: 500;">
+                  🏛️ NYC HPD Public Code Enforcement Portal ↗
+                </a>
+              </div>
             </div>
           `;
         }
@@ -969,6 +985,48 @@
         if (map && mapBounds.length > 0) {
           map.fitBounds(mapBounds, { padding: [25, 25] });
         }
+      }
+
+      // 2b. Applicable Housing Law & Statutory Defenses
+      const statutesContainer = document.getElementById("statutes-container");
+      const statutesCount = document.getElementById("statutes-count");
+      const statutes = caseState.statutes || [];
+      if (statutesCount) statutesCount.textContent = `${statutes.length} statutes`;
+
+      const STATUTE_URL_MAP = {
+        "STAT-NY-01": "https://codelibrary.amlegal.com/codes/newyorkcity/latest/NYCadmin/0-0-0-48227",
+        "STAT-NY-02": "https://www.nysenate.gov/legislation/laws/RPP/235-B",
+        "STAT-NY-03": "https://www.nysenate.gov/legislation/laws/SOS/143-B"
+      };
+
+      if (statutesContainer && statutes.length > 0) {
+        setTimelineStep(3);
+        let sHtml = `<div class="item-list">`;
+        for (const s of statutes) {
+          const sid = s.statute_section_id || "";
+          const link = s.statute_url || STATUTE_URL_MAP[sid] || "https://www.nysenate.gov/legislation/laws";
+          const title = s.ordinance_title || "Housing Law";
+          const cite = s.code_citation || "NY Law";
+          const desc = s.raw_statute_text || "";
+
+          sHtml += `
+            <div class="item-row" style="border-left: 3px solid #2563eb; background: #f8fafc; padding: 10px; margin-bottom: 8px; border-radius: 4px;">
+              <div class="item-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <span>⚖️ <strong>${escapeHtml(cite)}</strong></span>
+                <span class="badge badge-kept" style="background: #e0e7ff; color: #3730a3;">Statutory Defense</span>
+              </div>
+              <div style="font-weight: 600; font-size: 0.88em; color: #1e293b; margin: 3px 0;">${escapeHtml(title)}</div>
+              <div class="item-desc" style="font-size: 0.84em; color: #475569;">${escapeHtml(desc)}</div>
+              <div style="margin-top: 6px; font-size: 0.84em;">
+                <a href="${link}" target="_blank" rel="noopener" style="color: #2563eb; font-weight: 600; text-decoration: underline;">
+                  🔗 View Official Statutory Text ↗
+                </a>
+              </div>
+            </div>
+          `;
+        }
+        sHtml += `</div>`;
+        statutesContainer.innerHTML = sHtml;
       }
 
       // 3. Relief Eligibility Checklist (Step 5: Dynamic rule checklist)
