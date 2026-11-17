@@ -790,7 +790,14 @@
       msgDiv.className = `msg msg-${role}`;
       const name = role === "user" ? "Paralegal / Counselor" : (role === "tool" ? "Pitch Narration" : "Stabilization Navigator");
       
-      const renderedContent = typeof marked !== "undefined" ? marked.parse(text) : escapeHtml(text);
+      let renderedContent = "";
+      const trimmed = (text || "").trim();
+      // If content is already pre-formatted HTML (starts with <div or <table or <p), don't pass to marked.parse to prevent markdown escaping
+      if (trimmed.startsWith("<div") || trimmed.startsWith("<table") || trimmed.startsWith("<span") || trimmed.startsWith("<article")) {
+        renderedContent = text;
+      } else {
+        renderedContent = typeof marked !== "undefined" ? marked.parse(text) : escapeHtml(text);
+      }
       msgDiv.innerHTML = `<strong>${name}</strong><br><div style="margin-top: 4px;">${renderedContent}</div>`;
       box.appendChild(msgDiv);
       box.scrollTop = box.scrollHeight;
