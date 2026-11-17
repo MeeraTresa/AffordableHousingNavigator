@@ -1,72 +1,36 @@
-from datetime import datetime
-from google.cloud import bigquery
+import datetime
 from google.genai import types
 from google.adk.tools import ToolContext
-from ..bq import run_query
 from ..equity import tract_equity_note
 
-def _get_tract_context(tract_geoid: str) -> dict:
-    sql = """
-    SELECT
-      t.census_tract_geoid, t.county_name, t.severe_rent_burden_pct,
-      t.annual_nonpayment_filings_modeled, t.no_vehicle_pct,
-      m.metro_severe_rent_burden_pct, m.median_tract_nonpayment_filings_modeled
-    FROM `a4i_housing.v_tract_context` t
-    CROSS JOIN `a4i_housing.v_metro_baseline` m
-    WHERE t.census_tract_geoid = @geoid
-    """
-    rows = run_query(sql, [bigquery.ScalarQueryParameter("geoid", "STRING", str(tract_geoid))])
-    if rows:
-        return rows[0]
-    return {
-        "census_tract_geoid": tract_geoid,
-        "county_name": "New York County",
-        "severe_rent_burden_pct": 32.8,
-        "annual_nonpayment_filings_modeled": 414,
-        "no_vehicle_pct": 91.6,
-        "metro_severe_rent_burden_pct": 25.2,
-        "median_tract_nonpayment_filings_modeled": 196,
-    }
-
 def render_brief_markdown(case: dict, memo_markdown: str) -> str:
-    """Pure function that renders the Tenant Stabilization Brief per Part B §11."""
-    prepared = datetime.now().strftime("%Y-%m-%d %H:%M")
-    hearing_str = case.get("hearing_datetime", "")
-    try:
-        hearing_dt = datetime.fromisoformat(hearing_str)
-        hearing_fmt = hearing_dt.strftime("%a %Y-%m-%d %H:%M")
-    except Exception:
-        hearing_fmt = hearing_str
-
-    hours = case.get("hours_to_hearing", 0)
-    from ..config import EMERGENCY_HOURS
-    urgency = f"EMERGENCY (<{EMERGENCY_HOURS}h)" if hours < EMERGENCY_HOURS else "Standard"
-
-    tract_geoid = case.get("census_tract_geoid") or "36061024500"
-    tract_info = _get_tract_context(tract_geoid)
+    """Render the 6-section Tenant Stabilization Brief markdown document."""
+    prepared = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    hearing = case.get("hearing_datetime", "")
+    hours = round(case.get("hours_to_hearing", 0), 1)
+    urgency = case.get("urgency", "standard").upper()
+    block = case.get("block_address", "Unknown block")
+    tract_geoid = case.get("census_tract_geoid", "Unknown")
+    tract_info = case.get("tract_context", {})
     county = tract_info.get("county_name", "New York County")
-    block = case.get("block_address", "1000 Block St Nicholas Avenue")
+    hearing_fmt = hearing.replace("T", " ") if hearing else "Not scheduled"
 
     # Section 1: Corroborating public records
     evidence_rows = []
     for e in case.get("evidence", []):
-        opened = str(e.get("created_date", ""))[:10]
-        sim = f"{float(e.get('similarity', 0)):.2f}"
+        sim = f"{e['similarity']:.3f}" if e.get("similarity") is not None else "n/a"
+        dist = f"{e.get('meters_from_anchor', 0)}m"
         evidence_rows.append(
-            f"| `{e['request_id']}` | {e.get('block_address', block)} | "
-            f"{e.get('raw_complaint_type', 'HPD Violation')} | {e.get('inspection_status', 'Open')} | "
-            f"{opened} | {sim} |"
+            f"| `{e['request_id']}` | {e.get('block_address', block)} ({dist}) | {e.get('raw_complaint_type', 'HPD')} | {e.get('inspection_status', 'Open')} | {e.get('created_date', '')} | {sim} |"
         )
     if not evidence_rows:
-        evidence_table = "| (No open corroborating 311/HPD records found within 800m) | | | | | |"
+        evidence_table = "| (No kept records meeting residential & proximity filters) | | | | | |"
     else:
         evidence_table = "\n".join(evidence_rows)
 
     excluded_items = []
     for ex in case.get("exclusions", []):
-        sim = f"{float(ex.get('similarity', 0)):.2f}"
-        reason = ex.get("excluded_because", "Excluded by rule.")
-        excluded_items.append(f"- `{ex['request_id']}` (sim {sim}): {reason}")
+        excluded_items.append(f"- `{ex['request_id']}`: {ex.get('excluded_because', 'Filtered')} ({ex.get('property_type', '')}, {ex.get('meters_from_anchor', 0)}m)")
     if not excluded_items:
         excluded_list = "- None"
     else:
@@ -152,21 +116,37 @@ async def finalize_brief(memo_markdown: str, tool_context: ToolContext) -> dict:
     Args:
       memo_markdown: The drafted legal-aid intake memo (Section 6 of the brief) written by you.
     The structured sections and the Equity Audit are rendered by code from the case file."""
-    case = tool_context.state["case"]
+    case = tool_context.state.get("case", {})
     md = render_brief_markdown(case, memo_markdown)
-    md += "\n\n" + tract_equity_note(case)          # appended AFTER; LLM never sees equity audit values
+    equity_section = tract_equity_note(case)
+    if equity_section:
+        md += "\n\n" + equity_section
+
+    # Store in case state for instant retrieval and download
+    case["brief_markdown"] = md
+    tool_context.state["case"] = case
+
+    # Persist locally if filesystem allows
     try:
         with open("tenant_stabilization_brief.md", "w") as f:
             f.write(md)
     except Exception:
         pass
 
+    # Save to artifact service if available, but never crash if not initialized
     if hasattr(tool_context, "save_artifact"):
         try:
-            await tool_context.save_artifact("tenant_stabilization_brief.md",
-                                             types.Part.from_text(text=md))
+            art_svc = getattr(tool_context, "_require_artifact_service", None)
+            if art_svc is not None:
+                await tool_context.save_artifact("tenant_stabilization_brief.md",
+                                                 types.Part.from_text(text=md))
         except Exception:
             pass
-    return {"status": "saved", "artifact": "tenant_stabilization_brief.md",
-            "sections": ["evidence", "excluded", "statutes", "funds", "tract_context",
-                         "evidentiary_boundary", "memo", "equity_audit"]}
+
+    return {
+        "status": "saved",
+        "artifact": "tenant_stabilization_brief.md",
+        "brief_markdown": md,
+        "sections": ["evidence", "excluded", "statutes", "funds", "tract_context",
+                     "evidentiary_boundary", "memo", "equity_audit"]
+    }

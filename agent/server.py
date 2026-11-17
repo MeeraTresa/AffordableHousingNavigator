@@ -1,12 +1,15 @@
 import os
+import time
+from typing import Optional
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
 from pydantic import BaseModel
 from google.genai import types
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
+from google.adk.artifacts import InMemoryArtifactService
 from agent.navigator.agent import root_agent
 from agent.navigator.tools.case_file import open_case, update_case
 from agent.navigator.tools.evidence import search_habitability_evidence
@@ -21,7 +24,10 @@ from unittest.mock import MagicMock
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 os.environ["GOOGLE_CLOUD_LOCATION"] = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
 
-app = FastAPI(title="Stabilization Navigator API & Rich Chat", description="AI Intake Co-pilot with Rich UI & Live BigQuery Tool State")
+app = FastAPI(
+    title="Stabilization Navigator · Housing Intake Co-Pilot",
+    description="New York City Housing Eviction Defense & Real-Time BigQuery Vector Engine"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,7 +38,13 @@ app.add_middleware(
 )
 
 session_service = InMemorySessionService()
-runner = Runner(agent=root_agent, app_name="navigator", session_service=session_service)
+artifact_service = InMemoryArtifactService()
+runner = Runner(
+    agent=root_agent,
+    app_name="navigator",
+    session_service=session_service,
+    artifact_service=artifact_service
+)
 
 # In-memory mapping from web session_id -> ADK session object
 adk_sessions = {}
@@ -83,6 +95,7 @@ def health_check():
         "service": "Stabilization Navigator",
         "metro": "New York",
         "dataset": "a4i_housing",
+        "table": "complaints_embedded",
         "model": "gemini-2.5-flash via Vertex AI"
     }
 
@@ -96,37 +109,87 @@ async def get_case_state(session_id: str = "default"):
 
 @app.post("/chat")
 async def chat_turn(req: ChatMessageRequest):
-    """Conversational turn returning assistant message, invoked tools, and updated case state snapshot."""
+    """Conversational turn returning assistant message, invoked tools, latency, and updated case state snapshot."""
+    start_time = time.time()
     adk_sess = await get_or_create_adk_session(req.session_id)
     msg = types.Content(parts=[types.Part.from_text(text=req.message)])
     
     text_responses = []
     tool_calls = []
     
-    async for event in runner.run_async(user_id="web_user", session_id=adk_sess.id, new_message=msg):
-        if event.content and event.content.parts:
-            for p in event.content.parts:
-                if p.text:
-                    text_responses.append(p.text)
-                if p.function_call:
-                    tool_calls.append({
-                        "tool": p.function_call.name,
-                        "args": p.function_call.args
-                    })
+    try:
+        async for event in runner.run_async(user_id="web_user", session_id=adk_sess.id, new_message=msg):
+            if event.content and event.content.parts:
+                for p in event.content.parts:
+                    if p.text:
+                        text_responses.append(p.text)
+                    if p.function_call:
+                        tool_calls.append({
+                            "tool": p.function_call.name,
+                            "args": p.function_call.args
+                        })
+    except Exception as e:
+        # Fallback graceful error response ensuring UI receives JSON and explains the exact issue
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "session_id": req.session_id,
+                "reply": f"⚠️ Notice: The assistant encountered an operational condition: {str(e)}. "
+                         f"Please ensure a case is open before finalizing.",
+                "tool_calls": tool_calls,
+                "latency_ms": elapsed_ms,
+                "error": str(e)
+            }
+        )
+
+    elapsed_ms = int((time.time() - start_time) * 1000)
 
     # Retrieve current case state from ADK session
     s = await session_service.get_session(app_name="navigator", user_id="web_user", session_id=adk_sess.id)
     case_snapshot = s.state.get("case") if s else None
 
-    # If the case has evidence and funds haven't been evaluated or need auto-refresh
+    # Attach demographic equity info if tract is known
+    equity_info = None
+    if case_snapshot and case_snapshot.get("census_tract_geoid"):
+        try:
+            equity_info = get_tract_context(case_snapshot["census_tract_geoid"])
+        except Exception:
+            pass
+
     return {
         "session_id": req.session_id,
         "reply": "\n\n".join(text_responses) if text_responses else "Case information processed.",
         "tool_calls": tool_calls,
-        "case_state": case_snapshot
+        "latency_ms": elapsed_ms,
+        "case_state": case_snapshot,
+        "equity_info": equity_info,
+        "provenance": {
+            "dataset": "a4i_housing",
+            "table": "complaints_embedded (174 records)",
+            "vector_model": "gemini-embedding-2",
+            "query_engine": "BigQuery VECTOR_SEARCH (Brute-Force Cosine)",
+            "metro": "New York City (Bronx, Brooklyn, Manhattan, Queens, Staten Island)"
+        }
     }
 
-# Retain direct endpoints for testing / manual trigger
+@app.get("/brief/download", response_class=PlainTextResponse)
+async def download_brief(session_id: str = "default"):
+    adk_sess = await get_or_create_adk_session(session_id)
+    s = await session_service.get_session(app_name="navigator", user_id="web_user", session_id=adk_sess.id)
+    case = s.state.get("case") if s else None
+    if not case:
+        raise HTTPException(status_code=404, detail="No active case found for this session.")
+    brief_md = case.get("brief_markdown")
+    if not brief_md:
+        brief_md = render_brief_markdown(case, "Intake memo pending attorney review.")
+        brief_md += "\n\n" + tract_equity_note(case)
+    return PlainTextResponse(
+        content=brief_md,
+        headers={"Content-Disposition": "attachment; filename=tenant_stabilization_brief.md"}
+    )
+
+# Direct tool endpoints for headless testing
 sessions = {}
 def get_context(session_id: str):
     if session_id not in sessions:
