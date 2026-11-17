@@ -101,7 +101,7 @@
           <strong>Stabilization Navigator</strong><br>
           Welcome. I am your intake co-pilot for New York City residential eviction defense.
           <br><br>
-          Provide your tenant's <strong>100-block address</strong>, <strong>court hearing date</strong>, and <strong>habitability hazards</strong>. I will:
+          Provide your tenant's <strong>street address</strong> (e.g. <em>1042 St Nicholas Ave</em> or <em>2534 Grand Concourse</em>; unit numbers are automatically redacted to 100-blocks for tenant privacy), <strong>court hearing date</strong>, and <strong>habitability hazards</strong>. I will:
           <ul style="margin: 6px 0 0 16px; padding: 0;">
             <li>Query BigQuery <code>complaints_embedded</code> via semantic vector search.</li>
             <li>Deterministically filter out commercial and closed decoys within 800m.</li>
@@ -112,7 +112,7 @@
       </div>
 
       <div class="input-row">
-        <input type="text" id="user-input" placeholder="Type case details or ask housing law questions..." onkeydown="if(event.key === 'Enter') sendMessage()" />
+        <input type="text" id="user-input" placeholder="Enter street address (e.g. 1042 St Nicholas Ave), hearing date, or hazards..." onkeydown="if(event.key === 'Enter') sendMessage()" />
         <button onclick="sendMessage()" id="send-btn">Send</button>
       </div>
 
