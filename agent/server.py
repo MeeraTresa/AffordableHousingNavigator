@@ -46,8 +46,12 @@ runner = Runner(
     artifact_service=artifact_service
 )
 
+
 # In-memory mapping from web session_id -> ADK session object
 adk_sessions = {}
+# Session conversation history: session_id -> list of {"role": str, "content": str, "tool_calls": list, "timestamp": float}
+session_histories = {}
+
 
 async def get_or_create_adk_session(session_id: str):
     if session_id not in adk_sessions:
@@ -261,12 +265,53 @@ async def get_case_state(session_id: str = "default"):
     case = s.state.get("case") if s else None
     return {"session_id": session_id, "case": case}
 
+
+@app.get("/chat/history")
+async def get_chat_history(session_id: str = "default"):
+    """Retrieve chronological conversation history and current case state for session recovery."""
+    history = session_histories.get(session_id, [])
+    adk_sess = adk_sessions.get(session_id)
+    case_snapshot = None
+    equity_info = None
+    if adk_sess:
+        s = await session_service.get_session(app_name="navigator", user_id="web_user", session_id=adk_sess.id)
+        case_snapshot = s.state.get("case") if s else None
+        if case_snapshot and case_snapshot.get("census_tract_geoid"):
+            try:
+                equity_info = get_tract_context(case_snapshot["census_tract_geoid"])
+            except Exception:
+                pass
+    return {
+        "session_id": session_id,
+        "messages": history,
+        "case_state": case_snapshot,
+        "equity_info": equity_info,
+        "count": len(history)
+    }
+
+@app.post("/chat/clear")
+async def clear_chat_history(session_id: str = "default"):
+    """Reset conversation history and session state for a fresh intake."""
+    if session_id in session_histories:
+        session_histories[session_id] = []
+    if session_id in adk_sessions:
+        del adk_sessions[session_id]
+    return {"status": "cleared", "session_id": session_id}
+
 @app.post("/chat")
 async def chat_turn(req: ChatMessageRequest):
     """Conversational turn returning assistant message, invoked tools, latency, and updated case state snapshot."""
     start_time = time.time()
     adk_sess = await get_or_create_adk_session(req.session_id)
     msg = types.Content(parts=[types.Part.from_text(text=req.message)])
+    if req.session_id not in session_histories:
+        session_histories[req.session_id] = []
+    session_histories[req.session_id].append({
+        "role": "user",
+        "content": req.message,
+        "tool_calls": [],
+        "timestamp": time.time()
+    })
     
     text_responses = []
     tool_calls = []

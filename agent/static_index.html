@@ -154,6 +154,12 @@
       <span class="badge badge-prov">🤖 gemini-2.5-flash (Vertex AI)</span>
       <span class="badge badge-prov">⚡ BQ VECTOR_SEARCH</span>
       <span id="latency-badge" class="badge">Ready</span>
+      <button onclick="recoverConversation()" title="Recover existing conversation history" style="background: #0284c7; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.8em; font-weight: 600; cursor: pointer;">
+        🔄 Recover History
+      </button>
+      <button onclick="startFreshIntake()" title="Clear and start fresh intake" style="background: #475569; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.8em; font-weight: 600; cursor: pointer;">
+        ✨ New Intake
+      </button>
     </div>
   </div>
 
@@ -398,7 +404,12 @@
 
   <script>
     const API_BASE = window.location.origin;
-    const sessionId = "session_" + Math.random().toString(36).substring(7);
+    // Persist session ID in localStorage so conversation history and case state can be recovered
+    let sessionId = localStorage.getItem("a4i_session_id");
+    if (!sessionId) {
+      sessionId = "session_" + Math.random().toString(36).substring(7);
+      localStorage.setItem("a4i_session_id", sessionId);
+    }
     let activeCase = null;
     let map = null;
     let tenantLayer = null;
@@ -1401,8 +1412,46 @@
       event.target.value = "";
     }
 
+    // Automatic and manual conversation recovery
+    async function recoverConversation() {
+      try {
+        const res = await fetch(`${API_BASE}/chat/history?session_id=${sessionId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.messages && data.messages.length > 0) {
+          const box = document.getElementById("chat-box");
+          box.innerHTML = ""; // Clear initial welcome placeholder
+          for (const m of data.messages) {
+            appendMessage(m.content, m.role, m.tool_calls);
+          }
+          if (data.case_state) {
+            updateDashboardUI(data.case_state, data.equity_info);
+          }
+          const lat = document.getElementById("latency-badge");
+          if (lat) {
+            lat.textContent = `Recovered (${data.count} msgs)`;
+            lat.className = "badge badge-kept";
+          }
+        }
+      } catch (e) {
+        console.warn("Could not recover session history:", e);
+      }
+    }
+
+    async function startFreshIntake() {
+      if (confirm("Start a new intake session? This will clear current conversation history.")) {
+        try {
+          await fetch(`${API_BASE}/chat/clear?session_id=${sessionId}`, { method: "POST" });
+        } catch (e) {}
+        const newId = "session_" + Math.random().toString(36).substring(7);
+        localStorage.setItem("a4i_session_id", newId);
+        window.location.reload();
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       initMap();
+      recoverConversation();
     });
   </script>
 </body>
