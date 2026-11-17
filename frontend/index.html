@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Affordable Housing Stabilization & Eviction Prevention Navigator — Intake Desk</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-icon">⚖️</span>
+      <div>
+        <div class="brand-title">Stabilization Navigator <span class="brand-subtitle">New York Corridor</span></div>
+      </div>
+    </div>
+
+    <div class="case-badge">
+      <span class="case-id">📁 Intake: Marisol V. · 1000 Block St. Nicholas Ave</span>
+      <span class="countdown-timer" id="hearing-countdown">⏳ Mon 9:30 AM · 89h remaining</span>
+    </div>
+
+    <div class="header-controls">
+      <div class="mode-toggle">
+        <button id="mode-live-btn" class="mode-btn active">Live (Cloud Run)</button>
+        <button id="mode-mock-btn" class="mode-btn">Mock Replay</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-container">
+
+    <!-- Left Pane: Chat (40%) -->
+    <section class="chat-pane">
+      <div class="chat-messages" id="chat-messages">
+        <!-- Messages dynamically inserted here -->
+      </div>
+
+      <!-- Quick Turn Shortcuts -->
+      <div class="quick-prompts" id="quick-prompts">
+        <!-- Buttons for Turn 1 to Turn 7 -->
+      </div>
+
+      <!-- Chat Input Bar -->
+      <div class="chat-input-bar">
+        <input type="text" id="chat-input" class="chat-input" placeholder="Ask about conditions, evidence, statutes, relief funds..." autofocus>
+        <button id="send-btn" class="send-btn">Send &rarr;</button>
+      </div>
+    </section>
+
+    <!-- Right Pane: Live Case File (60%) -->
+    <section class="case-pane">
+      <nav class="case-tabs">
+        <button class="tab-btn active" data-tab="evidence">
+          📋 Evidence <span class="tab-badge" id="badge-evidence">0 kept</span>
+        </button>
+        <button class="tab-btn" data-tab="funds">
+          🛟 Relief Funds <span class="tab-badge" id="badge-funds">4 funds</span>
+        </button>
+        <button class="tab-btn" data-tab="law">
+          🏛️ Applicable Law <span class="tab-badge" id="badge-law">3 statutes</span>
+        </button>
+        <button class="tab-btn" data-tab="brief">
+          📄 Stabilization Brief <span class="tab-badge" id="badge-brief">Draft</span>
+        </button>
+      </nav>
+
+      <div class="case-content">
+        <!-- Evidence Tab -->
+        <div class="tab-panel active" id="tab-evidence">
+          <div style="color: var(--text-muted); text-align: center; padding: 40px 20px;">
+            <p style="font-size: 14px; margin-bottom: 8px;">No evidence loaded yet.</p>
+            <p style="font-size: 12px;">Run Turn 1 to execute semantic vector search over municipal 311 habitability records with hard relational decoy filtering.</p>
+          </div>
+        </div>
+
+        <!-- Relief Funds Tab -->
+        <div class="tab-panel" id="tab-funds">
+          <div style="color: var(--text-muted); text-align: center; padding: 40px 20px;">
+            <p style="font-size: 14px; margin-bottom: 8px;">Relief fund eligibility not evaluated yet.</p>
+            <p style="font-size: 12px;">Run Turn 4 to evaluate household criteria against NYC emergency rental assistance programs using our deterministic Python rules engine.</p>
+          </div>
+        </div>
+
+        <!-- Law Tab -->
+        <div class="tab-panel" id="tab-law">
+          <div style="color: var(--text-muted); text-align: center; padding: 40px 20px;">
+            <p style="font-size: 14px; margin-bottom: 8px;">No statutory citations retrieved yet.</p>
+            <p style="font-size: 12px;">Run Turn 3 to match municipal housing maintenance codes and NY state habitability statutes.</p>
+          </div>
+        </div>
+
+        <!-- Brief Tab -->
+        <div class="tab-panel" id="tab-brief">
+          <div class="brief-actions">
+            <button id="copy-brief-btn" class="action-btn">📋 Copy Brief to Clipboard</button>
+            <button id="print-brief-btn" class="action-btn">🖨️ Print Legal Memo</button>
+          </div>
+          <div class="brief-container" id="brief-content">
+            <p style="color: var(--text-muted);">The Tenant Stabilization Brief will render here upon completion of Turn 7 (finalize_brief).</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Provenance Footer -->
+  <footer class="app-footer">
+    <div class="footer-badges">
+      <span class="badge real">Real: ACS 5-Yr, 311 Narratives</span>
+      <span class="badge modeled">[Modeled]: Eviction Filings (4-Qtr Agg)</span>
+      <span class="badge planted">[Planted]: Decoys Filtered 9/9</span>
+      <span class="badge cloudrun">Cloud Run: sq7-stabilization-navigator</span>
+    </div>
+    <div class="footer-status" id="footer-status">Mode: Live Cloud Run (ADK)</div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
