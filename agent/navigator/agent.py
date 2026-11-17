@@ -55,7 +55,7 @@ def find_tract_for_block(block_fragment: str) -> list[dict]:
 root_agent = Agent(
     name="stabilization_navigator",
     model=MODEL,
-    system_instruction=SYSTEM_INSTRUCTION,
+    instruction=SYSTEM_INSTRUCTION,
     tools=[
         open_case,
         update_case,
