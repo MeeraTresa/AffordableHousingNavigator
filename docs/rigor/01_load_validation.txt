@@ -1,0 +1,33 @@
+Running validation checks against qwiklabs-gcp-03-ee26737d3114.a4i_housing (METRO=New York, STATE_FIPS=36)
+
+[PASS] tenure: >= 40 tracts loaded: 168 tracts
+[PASS] tenure: unique census_tract_geoid: 168 distinct
+[PASS] tenure: all tract IDs are 11 chars (leading zero intact): 0 bad
+[PASS] tenure: all tracts match metro state FIPS: expected prefix 36
+[PASS] tenure: all rows belong to selected METRO: 0 wrong
+[PASS] tenure: positive renter_occupied_units: 0 <= 0
+[PASS] tenure: 50%+ rent-burden count <= renter units: 0 bad
+[PASS] tenure: audit_* shares within [0, 1]: 0 out of bounds
+[PASS] filings: exact 4 quarters per tract: 672 rows across 4 quarters
+[PASS] filings: unique filing_record_id: 672 distinct
+[PASS] filings: all rows match METRO: 0 wrong
+[PASS] filings: non-negative filing counts: 0 negative
+[PASS] filings: 100% FK match to acs_tract_housing_tenure: 0 orphans
+[PASS] 311: expected 174 rows (165 real + 9 decoys): 174 rows
+[PASS] 311: unique request_id: 174 distinct
+[PASS] 311: all rows match METRO: 0 wrong
+[PASS] 311: all tract IDs are 11 chars: 0 bad
+[PASS] 311: 100% FK match to acs_tract_housing_tenure: 0 orphans
+[PASS] 311: all 9 [Planted Case] decoys present (3+3+3): decoys=9 (3/3/3)
+[PASS] 311: at least 5 open real residential complaints: 165 open residential cases
+[PASS] 311 PII scrub: zero self-disclosed caller names remain: 0 remaining
+[PASS] 311 PII scrub: zero license plates remain: 0 remaining
+[PASS] 311 PII scrub: zero apartment/room numbers remain: 0 remaining
+[PASS] bulletins: 4 metro programs (2 general + 2 habitability-contingent): total=4 (hab=2, gen=2)
+[PASS] statutes: 3 metro housing ordinance summaries loaded: 3 statutes
+[PASS] spatial: tract_geom and property_geom landed as native GEOGRAPHY: 2/2 GEOGRAPHY columns
+
+==================================================
+Validation summary: 26 checks — 26 PASS, 0 WARN, 0 FAIL
+Metrics: 174 complaints, 168 tracts, 672 filing rows, 9 decoys, 0 FAIL
+==================================================
