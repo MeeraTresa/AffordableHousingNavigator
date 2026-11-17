@@ -76,7 +76,7 @@ You will build it for **one metro**, not for everywhere. Which city you solve fo
 
 ---
 
-## How to read this
+## How to Read this
 
 **This is a reference for your whole afternoon, not something to read end to end right now.** Here is what each lane needs in the first fifteen minutes.
 
