@@ -209,6 +209,11 @@ async function runLiveTurn(userText) {
       })
     });
 
+    if (!resp.ok) {
+      const errText = await resp.text();
+      throw new Error(`Server returned HTTP ${resp.status}: ${errText.substring(0, 150)}`);
+    }
+
     const events = await resp.json();
     let replyText = "";
     let toolsCalled = [];

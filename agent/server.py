@@ -243,26 +243,43 @@ def api_get_tract(geoid: str):
     return get_tract_context(geoid)
 
 @app.post("/brief/generate")
-def api_generate_brief(req: FinalizeBriefRequest):
-    ctx = get_context(req.session_id)
-    case = ctx.state.get("case")
+async def api_generate_brief(req: FinalizeBriefRequest):
+    # Retrieve from real ADK runner session first
+    adk_sess = await get_or_create_adk_session(req.session_id)
+    s = await session_service.get_session(app_name="navigator", user_id="web_user", session_id=adk_sess.id)
+    case = s.state.get("case") if s else None
+    
     if not case:
-        return {"error": "No open case found for session"}
-    brief_md = render_brief_markdown(case, req.memo_markdown)
-    equity_md = tract_equity_note(case)
-    if equity_md:
-        brief_md += "\n\n" + equity_md
-    return {
-        "status": "success",
-        "brief_markdown": brief_md,
-        "case_summary": {
-            "block_address": case.get("block_address"),
-            "census_tract_geoid": case.get("census_tract_geoid"),
-            "evidence_count": len(case.get("evidence", [])),
-            "excluded_count": len(case.get("exclusions", [])),
-            "funds_count": len(case.get("funds", []))
+        ctx = get_context(req.session_id)
+        case = ctx.state.get("case")
+
+    if not case:
+        return JSONResponse(status_code=400, content={"error": "No open case found for session. Please open a case first."})
+
+    try:
+        brief_md = render_brief_markdown(case, req.memo_markdown)
+        equity_md = tract_equity_note(case)
+        if equity_md:
+            brief_md += "\n\n" + equity_md
+        
+        # Save back into ADK session state
+        if s:
+            case["brief_markdown"] = brief_md
+            s.state["case"] = case
+            
+        return {
+            "status": "success",
+            "brief_markdown": brief_md,
+            "case_summary": {
+                "block_address": case.get("block_address"),
+                "census_tract_geoid": case.get("census_tract_geoid"),
+                "evidence_count": len(case.get("evidence", [])),
+                "excluded_count": len(case.get("exclusions", [])),
+                "funds_count": len(case.get("funds", []))
+            }
         }
-    }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Failed to generate brief: {str(e)}"})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
