@@ -4,6 +4,16 @@
 
 ---
 
+## Live demo
+
+- **Stabilization Navigator Agent (Cloud Run Dev UI):** [https://sq7-stabilization-navigator-530357188502.us-central1.run.app/dev-ui/](https://sq7-stabilization-navigator-530357188502.us-central1.run.app/dev-ui/)
+- **MCP Database Toolbox (Cloud Run):** [https://sq7-mcp-toolbox-530357188502.us-central1.run.app](https://sq7-mcp-toolbox-530357188502.us-central1.run.app)
+- **Google Cloud Project:** `qwiklabs-gcp-03-ee26737d3114` (Region: `us-central1`)
+- **Metro Corpus:** New York (`a4i_housing`, `us.a4i-vertex`, `gemini-embedding-2`)
+- **Verified Deployment Proof:** [docs/rigor/08_agent_cloudrun.md](docs/rigor/08_agent_cloudrun.md)
+
+---
+
 ## Why this one matters
 
 More than half of low-income renters in America spend over half their paycheck on rent, leaving families one missed shift, medical bill, or broken car transmission away from a court eviction filing. Across major cities, residential tenants hauled into housing court for nonpayment frequently live in buildings the city *already knows* have no heat, raw sewage backups, toxic mold, or unsafe electrical wiring.
