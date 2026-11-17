@@ -26,7 +26,7 @@ os.environ["GOOGLE_CLOUD_LOCATION"] = os.environ.get("GOOGLE_CLOUD_LOCATION", "u
 
 app = FastAPI(
     title="Stabilization Navigator · Housing Intake Co-Pilot",
-    description="New York City Housing Eviction Defense & Real-Time BigQuery Vector Engine"
+    description="Multi-City Housing Eviction Defense & Real-Time BigQuery Vector Engine (NYC, SF, CHI, ATX, BTR, CVG)"
 )
 
 app.add_middleware(
@@ -169,7 +169,7 @@ async def chat_turn(req: ChatMessageRequest):
             "table": "complaints_embedded (174 records)",
             "vector_model": "gemini-embedding-2",
             "query_engine": "BigQuery VECTOR_SEARCH (Brute-Force Cosine)",
-            "metro": "New York City (Bronx, Brooklyn, Manhattan, Queens, Staten Island)"
+            "metro": "Multi-City Active (New York, San Francisco, Chicago, Austin, Baton Rouge, Cincinnati)"
         }
     }
 
