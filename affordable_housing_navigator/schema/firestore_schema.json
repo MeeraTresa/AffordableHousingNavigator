@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Firebase Firestore Schema - Affordable Housing Navigator",
+  "description": "Firestore Collection 'tenant_cases' Document Schema for Case Management & Living Briefs",
+  "collection": "tenant_cases",
+  "documentId": "case_id (e.g. 'case-lt-029481-26')",
+  "type": "object",
+  "properties": {
+    "case_id": { "type": "string", "description": "Unique case document identifier" },
+    "court_index_number": { "type": "string", "example": "LT-029481/26/NY" },
+    "tenant_name": { "type": "string", "example": "Marisol V." },
+    "block_address": { "type": "string", "example": "1000 Block of St. Nicholas Ave" },
+    "metro_area": { "type": "string", "default": "New York" },
+    "census_tract_geoid": { "type": "string", "maxLength": 11, "example": "36061024500" },
+    "hearing_date": { "type": "string", "format": "date", "example": "2026-11-23" },
+    "hearing_time": { "type": "string", "example": "09:30 AM" },
+    "claimed_arrears": { "type": "number", "example": 3350.0 },
+    "notice_type": { "type": "string", "example": "Nonpayment Petition" },
+    "household_size": { "type": "integer", "example": 3 },
+    "annual_income": { "type": "number", "example": 31000.0 },
+    "hazard_narrative": { "type": "string", "description": "Tenant description of habitability defects" },
+    "status": {
+      "type": "string",
+      "enum": ["Active Intake", "Brief Drafting", "Hearing Ready", "Brief Finalized", "Resolved"],
+      "default": "Active Intake"
+    },
+    "urgency_level": {
+      "type": "string",
+      "enum": ["Critical", "High", "Medium", "Low"],
+      "default": "High"
+    },
+    "brief_markdown": { "type": "string", "description": "Full living legal brief markdown text (editable by caseworker)" },
+    "brief_edits_count": { "type": "integer", "default": 0 },
+    "corroborated_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "request_id": { "type": "string" },
+          "hazard_category": { "type": "string" },
+          "inspection_status": { "type": "string" },
+          "block_address": { "type": "string" },
+          "complaint_narrative": { "type": "string" }
+        }
+      }
+    },
+    "excluded_matches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "request_id": { "type": "string" },
+          "property_type": { "type": "string" },
+          "rejection_reason": { "type": "string" }
+        }
+      }
+    },
+    "applicable_statutes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code_citation": { "type": "string" },
+          "ordinance_title": { "type": "string" },
+          "relevance_rationale": { "type": "string" },
+          "statutory_deadline": { "type": "string" }
+        }
+      }
+    },
+    "eligible_funds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "program_name": { "type": "string" },
+          "administering_agency": { "type": "string" },
+          "verdict": { "type": "string" },
+          "max_assistance_amount": { "type": "string" },
+          "action_item": { "type": "string" }
+        }
+      }
+    },
+    "building_location": {
+      "type": "object",
+      "properties": {
+        "building_address": { "type": "string" },
+        "census_tract_geoid": { "type": "string" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "google_maps_url": { "type": "string" },
+        "google_maps_embed_url": { "type": "string" },
+        "google_street_view_url": { "type": "string" }
+      }
+    },
+    "caseworker_notes": { "type": "string", "description": "Internal caseworker/attorney notes" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "required": [
+    "case_id",
+    "court_index_number",
+    "tenant_name",
+    "block_address",
+    "hearing_date",
+    "claimed_arrears",
+    "status"
+  ]
+}
