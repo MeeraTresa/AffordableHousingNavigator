@@ -203,7 +203,14 @@ async def vision_extract_notice(req: NoticeExtractRequest):
                 prompt
             ]
         )
-        return {"status": "success", "extracted": response.text}
+        import json
+        txt = response.text.strip()
+        if txt.startswith("```json"):
+            txt = txt.replace("```json", "", 1).rsplit("```", 1)[0].strip()
+        elif txt.startswith("```"):
+            txt = txt.replace("```", "", 1).rsplit("```", 1)[0].strip()
+        extracted_data = json.loads(txt)
+        return {"status": "success", "extracted": extracted_data}
     except Exception as e:
         return {
             "status": "success",

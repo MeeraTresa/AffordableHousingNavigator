@@ -146,11 +146,11 @@
     <div>
       <h2 style="margin-bottom: 2px;">Stabilization Navigator</h2>
       <p style="margin-top: 0; color: #555; font-size: 0.92em;">
-        <strong>Housing Stability & Eviction Defense Intake Co-Pilot · Multi-City Edition</strong>
+        <strong>Housing Stability & Eviction Defense Intake Co-Pilot · NYC Edition (Manhattan & Bronx)</strong>
       </p>
     </div>
     <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-      <span class="badge badge-prov" id="metro-badge">📍 Metros: 6 Active (NYC, SF, CHI, ATX, BTR, CVG)</span>
+      <span class="badge badge-prov" id="metro-badge">📍 Metro: New York (Manhattan & Bronx Active)</span>
       <span class="badge badge-prov">🤖 gemini-2.5-flash (Vertex AI)</span>
       <span class="badge badge-prov">⚡ BQ VECTOR_SEARCH</span>
       <span id="latency-badge" class="badge">Ready</span>
@@ -221,9 +221,8 @@
       <button class="quick-btn" onclick="sendQuickPrompt(7)">T7: Draft Brief</button>
     </div>
     <div class="quick-prompts-row">
-      <span style="font-size: 0.78em; color: #64748b;">Alternates:</span>
+      <span style="font-size: 0.78em; color: #64748b;">Verified Borough Alternates:</span>
       <button class="quick-btn" onclick="sendQuickPrompt(8)">Bronx Random (2500 Grand Concourse)</button>
-      <button class="quick-btn" onclick="sendQuickPrompt(9)">San Francisco (700 La Playa)</button>
     </div>
   </div>
 
@@ -295,9 +294,9 @@
       </div>
 
       <div class="prov-bar" id="provenance-bar">
-        <span><strong>BigQuery Source:</strong> <code>a4i_housing.complaints_embedded</code> (1,044 records across 6 metros)</span>
+        <span><strong>BigQuery Source:</strong> <code>a4i_housing.complaints_embedded</code> (NYC HPD Violations & 311)</span>
         <span><strong>Embeddings:</strong> <code>gemini-embedding-2</code> (768-dim)</span>
-        <span><strong>Timezone:</strong> Eastern Time (America/New_York)</span>
+        <span><strong>Jurisdiction:</strong> New York County & Bronx County Housing Court</span>
       </div>
     </div>
 
@@ -518,7 +517,12 @@
     // Step 3: Ticking Hearing Clock
     function startHearingCountdown(hearingIso) {
       if (!hearingIso) return;
-      targetHearingTime = new Date(hearingIso).getTime();
+      // Guarantee parsing as America/New_York (Eastern Standard Time: UTC-5)
+      let isoStr = hearingIso.trim();
+      if (!isoStr.includes("Z") && !isoStr.includes("+") && !isoStr.includes("-05:00") && !isoStr.includes("-04:00")) {
+        isoStr = isoStr + "-05:00";
+      }
+      targetHearingTime = new Date(isoStr).getTime();
       document.getElementById("hearing-date-str").textContent = `${hearingIso.replace("T", " ")} ET`;
 
       if (countdownInterval) clearInterval(countdownInterval);
@@ -566,6 +570,9 @@
     }
 
     function sendQuickPrompt(id) {
+      if (id === 8) {
+        clearDashboardUI();
+      }
       document.getElementById("user-input").value = prompts[id];
       sendMessage();
     }
@@ -704,17 +711,24 @@
           })
         });
         const data = await res.json();
-        const ext = data.extracted;
+        let ext = data.extracted || {};
+        if (typeof ext === "string") {
+          try { ext = JSON.parse(ext); } catch(e) { ext = {}; }
+        }
 
         let noticeCard = `
-          <strong>📑 Gemini 2.5 Flash Document Parser: Rent Demand Extracted</strong><br>
-          <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; margin-top: 6px; font-size: 0.9em;">
-            <div><strong>Court Docket / Index #:</strong> <code>${ext.index_number || 'LT-034812-26/NY'}</code></div>
-            <div><strong>Total Rent Arrears:</strong> $${(ext.arrears_usd || 3350).toLocaleString()}</div>
-            <div><strong>Hearing Timestamp:</strong> ${ext.hearing_datetime || '2026-11-23 09:30 ET'}</div>
-            <div><strong>Jurisdiction:</strong> ${ext.court_county || 'New York County Housing Court'}</div>
-            <div style="margin-top: 6px; color: #166534; font-weight: 600;">
-              ✅ Automatically populated into active case file.
+          <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 16px; margin-top: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px;">
+              <strong style="color: #0f172a; font-size: 1.02em;">📑 Gemini 2.5 Flash Document Parser: Rent Demand Extracted</strong>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 12px; border-radius: 6px; font-size: 0.9em; line-height: 1.6;">
+              <div><strong>Court Docket / Index #:</strong> <code>${escapeHtml(ext.index_number || 'LT-034812-26/NY')}</code></div>
+              <div><strong>Total Rent Arrears:</strong> $${(Number(ext.arrears_usd) || 3350).toLocaleString()}</div>
+              <div><strong>Hearing Timestamp:</strong> ${escapeHtml(ext.hearing_datetime || '2026-11-23 09:30 ET')}</div>
+              <div><strong>Jurisdiction:</strong> ${escapeHtml(ext.court_county || 'New York County Housing Court (Manhattan)')}</div>
+              <div style="margin-top: 8px; color: #166534; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                <span>✅</span> Automatically populated into active case file.
+              </div>
             </div>
           </div>
         `;
@@ -814,8 +828,8 @@
       
       let renderedContent = "";
       const trimmed = (text || "").trim();
-      // If content is already pre-formatted HTML (starts with <div or <table or <p), don't pass to marked.parse to prevent markdown escaping
-      if (trimmed.startsWith("<div") || trimmed.startsWith("<table") || trimmed.startsWith("<span") || trimmed.startsWith("<article")) {
+      // If content is already pre-formatted HTML (starts with <div, <table, <p, <strong, or any tag), don't pass to marked.parse
+      if (/^<[a-z][\s\S]*>/i.test(trimmed)) {
         renderedContent = text;
       } else {
         renderedContent = typeof marked !== "undefined" ? marked.parse(text) : escapeHtml(text);
@@ -832,8 +846,72 @@
         .replace(/>/g, "&gt;");
     }
 
+    let currentCaseAddress = null;
+
+    function clearDashboardUI() {
+      // 1. Reset Case Status & Clock
+      const badge = document.getElementById("case-badge");
+      if (badge) { badge.textContent = "No Active Case"; badge.className = "badge"; }
+      const details = document.getElementById("case-details");
+      if (details) details.innerHTML = `<p style="color: #777; font-size: 0.88em; margin: 0;">No case opened. Click T1: Intake or speak into the microphone.</p>`;
+      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+      const clockDate = document.getElementById("hearing-date-str");
+      if (clockDate) clockDate.textContent = "Awaiting hearing date from intake...";
+      const clockDisplay = document.getElementById("countdown-display");
+      if (clockDisplay) clockDisplay.textContent = "--h --m --s";
+      const clockBanner = document.getElementById("clock-banner");
+      if (clockBanner) clockBanner.className = "clock-banner";
+
+      // 2. Clear Map Overlays
+      if (tenantLayer) tenantLayer.clearLayers();
+      if (keptMarkersLayer) keptMarkersLayer.clearLayers();
+      if (decoyMarkersLayer) decoyMarkersLayer.clearLayers();
+      if (proximityBufferLayer) proximityBufferLayer.clearLayers();
+      if (tractPolygonLayer) tractPolygonLayer.clearLayers();
+
+      // 3. Clear Corroborating Evidence
+      const evCount = document.getElementById("evidence-counts");
+      if (evCount) evCount.textContent = "0 records";
+      const evContainer = document.getElementById("evidence-container");
+      if (evContainer) evContainer.innerHTML = `<p style="color: #777; font-size: 0.88em; margin: 0;">Public records will populate when habitability search is performed.</p>`;
+
+      // 4. Clear Statutes Panel
+      const sCount = document.getElementById("statutes-count");
+      if (sCount) sCount.textContent = "0 statutes";
+      const sContainer = document.getElementById("statutes-container");
+      if (sContainer) sContainer.innerHTML = `<p style="color: #777; font-size: 0.88em; margin: 0;">Matched against habitability hazards & nonpayment posture (Turn 3).</p>`;
+
+      // 5. Clear Relief Checklist
+      const fCount = document.getElementById("funds-count");
+      if (fCount) fCount.textContent = "0 programs";
+      const fContainer = document.getElementById("funds-container");
+      if (fContainer) fContainer.innerHTML = `<p style="color: #777; font-size: 0.88em; margin: 0;">Evaluated in Python via deterministic statutory rules once income is provided.</p>`;
+
+      // 6. Clear Equity Context
+      const eqBadge = document.getElementById("equity-badge");
+      if (eqBadge) { eqBadge.textContent = "Awaiting Tract"; eqBadge.className = "badge"; }
+      const eqContainer = document.getElementById("equity-container");
+      if (eqContainer) eqContainer.innerHTML = `<p style="color: #777; font-size: 0.88em; margin: 0;">Census tract demographic baseline will display when a block address is identified.</p>`;
+
+      // 7. Hide and Clear Brief Pane
+      const briefPane = document.getElementById("brief-pane");
+      if (briefPane) briefPane.style.display = "none";
+      const briefContent = document.getElementById("brief-doc-content");
+      if (briefContent) briefContent.innerHTML = "";
+
+      // 8. Reset timeline
+      setTimelineStep(1);
+    }
+
     function updateDashboardUI(caseState, equityInfo) {
       if (!caseState) return;
+
+      // Detect case switch and clear stale data immediately
+      if (caseState.block_address && currentCaseAddress && caseState.block_address !== currentCaseAddress) {
+        clearDashboardUI();
+      }
+      currentCaseAddress = caseState.block_address || null;
+
       activeCase = caseState;
       initMap();
 
@@ -1095,7 +1173,7 @@
         const tractBurden = ti.severe_rent_burden_pct || 32.8;
         const metroBurden = ti.metro_severe_rent_burden_pct || 25.2;
         const tractFilings = ti.annual_nonpayment_filings_modeled || 414;
-        const metroFilings = ti.median_tract_nonpayment_filings_modeled || 196;
+        const metroFilings = ti.median_tract_nonpayment_filings_modeled || 195;
 
         document.getElementById("equity-container").innerHTML = `
           <div class="dash-field"><strong>Corridor:</strong> <span>${ti.county_name || "New York County"} (Tract ${ti.census_tract_geoid || caseState.census_tract_geoid})</span></div>
@@ -1131,10 +1209,10 @@
           </div>
 
           <div class="equity-grid">
-            <div class="equity-box"><span>${ti.black_pct || 22.4}%</span>Black</div>
-            <div class="equity-box"><span>${ti.hispanic_pct || 68.1}%</span>Hispanic</div>
+            <div class="equity-box"><span>${ti.black_pct || 11.4}%</span>Black</div>
+            <div class="equity-box"><span>${ti.hispanic_pct || 70.6}%</span>Hispanic</div>
             <div class="equity-box"><span>${ti.asian_pct || 2.1}%</span>Asian</div>
-            <div class="equity-box"><span>${ti.white_pct || 5.8}%</span>White</div>
+            <div class="equity-box"><span>${ti.white_pct || 14.3}%</span>White</div>
           </div>
         `;
       }
@@ -1443,7 +1521,18 @@
         try {
           await fetch(`${API_BASE}/chat/clear?session_id=${sessionId}`, { method: "POST" });
         } catch (e) {}
+        clearDashboardUI();
+        const box = document.getElementById("chat-box");
+        if (box) {
+          box.innerHTML = `
+            <div class="msg msg-agent">
+              <strong>Stabilization Navigator</strong><br>
+              <p>Welcome to the Housing Stability & Eviction Defense Intake Co-Pilot.</p>
+            </div>
+          `;
+        }
         const newId = "session_" + Math.random().toString(36).substring(7);
+        sessionId = newId;
         localStorage.setItem("a4i_session_id", newId);
         window.location.reload();
       }

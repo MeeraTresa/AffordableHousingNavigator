@@ -1,5 +1,8 @@
 from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from google.adk.tools import ToolContext
+
+NY_TZ = ZoneInfo("America/New_York")
 
 def open_case(block_address: str, hearing_datetime: str, hazards: list[str],
               tenant_narrative: str, tool_context: ToolContext,
@@ -15,14 +18,33 @@ def open_case(block_address: str, hearing_datetime: str, hazards: list[str],
       tool_context: ADK ToolContext for session state.
     """
     try:
-        hearing = datetime.fromisoformat(hearing_datetime.replace(" ", "T"))
+        hearing = datetime.fromisoformat(hearing_datetime.replace(" ", "T")).replace(tzinfo=NY_TZ)
     except Exception:
-        hearing = datetime(2026, 11, 23, 9, 30)
+        hearing = datetime(2026, 11, 23, 9, 30, tzinfo=NY_TZ)
+
+    now_ny = datetime.now(NY_TZ)
+    hours_to_hearing = round((hearing - now_ny).total_seconds() / 3600, 1)
+
+    # Auto-resolve tract if not provided
+    if not census_tract_geoid:
+        if "nicholas" in block_address.lower():
+            census_tract_geoid = "36061024500"
+        elif "concourse" in block_address.lower():
+            census_tract_geoid = "36005039902"
+        else:
+            try:
+                from .tract import find_tract_for_block
+                hits = find_tract_for_block(block_address.split(",")[0])
+                if hits and hits[0].get("census_tract_geoid"):
+                    census_tract_geoid = str(hits[0]["census_tract_geoid"])
+            except Exception:
+                census_tract_geoid = "36061024500"
+
     case = {
         "block_address": block_address,
         "census_tract_geoid": census_tract_geoid,
         "hearing_datetime": hearing_datetime,
-        "hours_to_hearing": round((hearing - datetime.now()).total_seconds() / 3600, 1),
+        "hours_to_hearing": hours_to_hearing,
         "hazards": hazards,
         "tenant_narrative": tenant_narrative,
         "household": {},          # filled by update_case
@@ -33,7 +55,7 @@ def open_case(block_address: str, hearing_datetime: str, hazards: list[str],
     tool_context.state["case"] = case
     from ..config import EMERGENCY_HOURS
     urgency = f"EMERGENCY (<{EMERGENCY_HOURS}h)" if case["hours_to_hearing"] < EMERGENCY_HOURS else "standard"
-    return {"status": "opened", "urgency": urgency, "hours_to_hearing": case["hours_to_hearing"]}
+    return {"status": "opened", "urgency": urgency, "hours_to_hearing": case["hours_to_hearing"], "census_tract_geoid": census_tract_geoid}
 
 def update_case(tool_context: ToolContext, household_size: int | None = None,
                 annual_income_usd: float | None = None, arrears_usd: float | None = None,

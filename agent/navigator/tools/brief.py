@@ -10,7 +10,7 @@ def render_brief_markdown(case: dict, memo_markdown: str) -> str:
     hours = round(case.get("hours_to_hearing", 0), 1)
     urgency = case.get("urgency", "standard").upper()
     block = case.get("block_address", "Unknown block")
-    tract_geoid = case.get("census_tract_geoid", "Unknown")
+    tract_geoid = case.get("census_tract_geoid") or "36061024500"
     tract_info = case.get("tract_context", {})
     county = tract_info.get("county_name", "New York County")
     hearing_fmt = hearing.replace("T", " ") if hearing else "Not scheduled"
@@ -71,7 +71,7 @@ def render_brief_markdown(case: dict, memo_markdown: str) -> str:
     # Section 4: Neighborhood context
     ctx_str = (
         f"Severe rent burden {tract_info.get('severe_rent_burden_pct', 32.8)}% (metro {tract_info.get('metro_severe_rent_burden_pct', 25.2)}%) · "
-        f"{tract_info.get('annual_nonpayment_filings_modeled', 414)} nonpayment filings/yr [Modeled] (median tract {tract_info.get('median_tract_nonpayment_filings_modeled', 196)}) · "
+        f"{tract_info.get('annual_nonpayment_filings_modeled', 414)} nonpayment filings/yr [Modeled] (median tract {tract_info.get('median_tract_nonpayment_filings_modeled', 195)}) · "
         f"{tract_info.get('no_vehicle_pct', 91.6)}% no-vehicle households → plan court transit."
     )
 

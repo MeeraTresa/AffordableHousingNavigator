@@ -1,6 +1,21 @@
 from google.cloud import bigquery
 from .bq import run_query
 
+CORRIDOR_BASELINE = {
+    "census_tract_geoid": "36061024500",
+    "county_name": "New York County",
+    "no_vehicle_pct": 91.6,
+    "black_pct": 11.4,
+    "hispanic_pct": 70.6,
+    "asian_pct": 2.1,
+    "indigenous_pct": 0.0,
+    "white_pct": 14.3,
+    "severe_rent_burden_pct": 32.8,
+    "metro_severe_rent_burden_pct": 25.2,
+    "annual_nonpayment_filings_modeled": 414,
+    "median_tract_nonpayment_filings_modeled": 195
+}
+
 def tract_equity_note(case: dict) -> str:
     """Generate the post-output Equity Audit note for a single case tract.
     
@@ -45,16 +60,7 @@ def tract_equity_note(case: dict) -> str:
 
     if not rows:
         # Fallback to standard Manhattan corridor baseline if query fails
-        r = {
-            "census_tract_geoid": tract_geoid,
-            "county_name": "New York County",
-            "no_vehicle_pct": 91.6,
-            "black_pct": 11.4,
-            "hispanic_pct": 70.6,
-            "asian_pct": 2.1,
-            "indigenous_pct": 0.0,
-            "white_pct": 14.3
-        }
+        r = dict(CORRIDOR_BASELINE, census_tract_geoid=tract_geoid)
     else:
         r = rows[0]
 
