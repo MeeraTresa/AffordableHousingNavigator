@@ -4,13 +4,31 @@
 
 ---
 
+## Submission Information
+
+- **Squad Name:** Zero-G Builders Inc
+- **Team Members:** Meera Tresa S, Bachir C, Sophie W, Sudharsana R, Saniyah B
+- **Demo Link:** [https://sq7-intake-desk-530357188502.us-central1.run.app](https://sq7-intake-desk-530357188502.us-central1.run.app)
+- **Pitch Deck:** [SVL 7 - Pitch Deck.pptx](https://storage.cloud.google.com/slidedeck-table-7/SVL%207%20-%20Pitch%20Deck.pptx)
+- **Pitch Video:** [youtube.com](https://youtube.com)
+- **GitHub Link:** [https://github.com/MeeraTresa/AffordableHousingNavigator](https://github.com/MeeraTresa/AffordableHousingNavigator)
+- **Environment Link:** [http://goo.gle/a4i-svl-107](http://goo.gle/a4i-svl-107)
+
+---
+
 ## Squad 7 Submission Summary
 
 | Dimension | Specification |
 |---|---|
+| **Squad Name** | **Zero-G Builders Inc** |
+| **Team Members** | Meera Tresa S, Bachir C, Sophie W, Sudharsana R, Saniyah B |
+| **Live Intake Desk Web App** | [https://sq7-intake-desk-530357188502.us-central1.run.app](https://sq7-intake-desk-530357188502.us-central1.run.app) |
+| **Pitch Deck** | [SVL 7 - Pitch Deck.pptx](https://storage.cloud.google.com/slidedeck-table-7/SVL%207%20-%20Pitch%20Deck.pptx) |
+| **Pitch Video** | [youtube.com](https://youtube.com) |
+| **GitHub Repository** | [https://github.com/MeeraTresa/AffordableHousingNavigator](https://github.com/MeeraTresa/AffordableHousingNavigator) |
+| **Environment Link** | [http://goo.gle/a4i-svl-107](http://goo.gle/a4i-svl-107) |
 | **Metro Corridor** | **New York City** (`a4i_housing`, BigQuery location `US`, connection `us.a4i-vertex`, embedding endpoint `gemini-embedding-2`) |
 | **Track** | **Intake Triage & Emergency Relief Matching** (Connecting habitability records to housing court defense) |
-| **Live Intake Desk Web App** | [https://sq7-intake-desk-530357188502.us-central1.run.app](https://sq7-intake-desk-530357188502.us-central1.run.app) |
 | **Live Agent Dev UI** | [https://sq7-stabilization-navigator-530357188502.us-central1.run.app/dev-ui/](https://sq7-stabilization-navigator-530357188502.us-central1.run.app/dev-ui/) |
 | **Live MCP Toolbox** | [https://sq7-mcp-toolbox-530357188502.us-central1.run.app](https://sq7-mcp-toolbox-530357188502.us-central1.run.app) |
 | **GCP Project** | `qwiklabs-gcp-03-ee26737d3114` (Region `us-central1`, Service Account: `530357188502-compute@developer.gserviceaccount.com`) |
