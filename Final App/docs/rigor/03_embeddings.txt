@@ -1,0 +1,46 @@
+=== M03 Embeddings & Fan-Out-Safe Views Sanity Verification ===
+
+1. complaints_embedded:
+   total_rows: 174 (expected 174)
+   decoys: 9 (expected 9)
+
+2. statutes_embedded:
+   statutes_count: 3 (expected 3)
+
+3. bulletins_embedded:
+   bulletins_count: 4 (expected 4)
+
+4. v_tract_context:
+   tracts_count: 168 (expected 168)
+   bad_quarters_aggregated: 0 (expected 0)
+
+5. v_metro_baseline:
+   metro_severe_rent_burden_pct: 25.2%
+   median_tract_nonpayment_filings_modeled: 195
+   tracts: 168
+
+6. Raw VECTOR_SEARCH results (queries: ['no heat radiators cold', 'black mold around tub', 'water leak through bathroom wall'], block: '1000 block st nicholas'):
+   Total matches returned: 48
+   Top 10 RAW matches:
+   #1: request_id=NYC-19346354 | sim=0.2465 | status=Open - HPD Class Violation | prop=Residential | dist=0.0m
+       narrative: § 27-2017.3 HMC: TRACE AND REPAIR THE SOURCE AND ABATE THE VISIBLE MOLD CONDITIO...
+   #2: request_id=DECOY-NEWY-05 [DECOY] | sim=0.2242 | status=Closed - Abated | prop=Residential | dist=6183.0m
+       narrative: Prior bathroom ceiling collapse and black mold growth behind drywall; licensed r...
+   #3: request_id=DECOY-NEWY-02 [DECOY] | sim=0.2136 | status=Open - Notice Issued | prop=Commercial | dist=4953.0m
+       narrative: Severe black mold, backed-up grease trap sewage, and exposed electrical conduit ...
+   #4: request_id=NYC-19350355 | sim=0.1936 | status=Open - HPD Class Violation | prop=Residential | dist=6994.0m
+       narrative: § 27-2017.3 HMC: TRACE AND REPAIR THE SOURCE AND ABATE THE VISIBLE MOLD CONDITIO...
+   #5: request_id=NYC-19350191 | sim=0.1824 | status=Open - HPD Class Violation | prop=Residential | dist=4735.0m
+       narrative: § 27-2017.3 HMC: TRACE AND REPAIR THE SOURCE AND ABATE THE VISIBLE MOLD CONDITIO...
+   #6: request_id=NYC-19350431 | sim=0.1802 | status=Open - HPD Class Violation | prop=Residential | dist=2818.0m
+       narrative: § 27-2005 ADM CODE PROPERLY REPAIR WITH SIMILAR MATERIAL THE BROKEN OR DEFECTIVE...
+   #7: request_id=NYC-19350323 | sim=0.1797 | status=Open - HPD Class Violation | prop=Residential | dist=5323.0m
+       narrative: § 27-2017.3 HMC: TRACE AND REPAIR THE SOURCE AND ABATE THE VISIBLE MOLD CONDITIO...
+   #8: request_id=NYC-19346350 | sim=0.1786 | status=Open - HPD Class Violation | prop=Residential | dist=1102.0m
+       narrative: § 27-2017.3 HMC: TRACE AND REPAIR THE SOURCE AND ABATE THE VISIBLE MOLD CONDITIO...
+   #9: request_id=NYC-19350315 | sim=0.1745 | status=Open - HPD Class Violation | prop=Residential | dist=5323.0m
+       narrative: § 27-2017.3 HMC: TRACE AND REPAIR THE SOURCE AND ABATE THE VISIBLE MOLD CONDITIO...
+   #10: request_id=NYC-19346328 | sim=0.1659 | status=Open - HPD Class Violation | prop=Residential | dist=2187.0m
+       narrative: § 27-2005 ADM CODE PROPERLY REPAIR WITH SIMILAR MATERIAL THE BROKEN OR DEFECTIVE...
+
+At least one DECOY-* in top 10 RAW results: True

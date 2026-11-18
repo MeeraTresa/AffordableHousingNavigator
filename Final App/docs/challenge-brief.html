@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Challenge 02 Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --text: #1b1f24;
+    --muted: #59636e;
+    --border: #e1e4e8;
+    --accent: #1a73e8;
+    --accent-2: #34a853;
+    --warn: #f9ab00;
+    --chip: #eef3fd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1115; --surface: #171a20; --text: #e8eaed; --muted: #9aa0a6;
+      --border: #2a2f37; --accent: #8ab4f8; --accent-2: #81c995; --warn: #fdd663; --chip: #1e2633;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1115; --surface: #171a20; --text: #e8eaed; --muted: #9aa0a6;
+    --border: #2a2f37; --accent: #8ab4f8; --accent-2: #81c995; --warn: #fdd663; --chip: #1e2633;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.65 Inter, system-ui, -apple-system, sans-serif;
+  }
+  main { max-width: 860px; margin: 0 auto; padding: 48px 16px 64px; }
+  header { margin-bottom: 40px; }
+  .eyebrow {
+    font: 500 13px/1 "JetBrains Mono", monospace; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  h1 { font-size: clamp(32px, 6vw, 48px); line-height: 1.1; margin: 12px 0 8px; letter-spacing: -.02em; }
+  .subtitle { font-size: 20px; font-weight: 500; color: var(--muted); margin: 0; }
+  h2 { font-size: 22px; margin: 40px 0 12px; letter-spacing: -.01em; }
+  p { margin: 0 0 14px; }
+  .mission {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 4px solid var(--accent); border-radius: 12px; padding: 20px 22px;
+  }
+  .mission p { margin: 0; font-size: 17px; }
+  .tracks { display: grid; gap: 14px; margin-top: 8px; }
+  .track {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px; display: grid; grid-template-columns: 36px 1fr; gap: 12px;
+  }
+  .track .icon { font-size: 22px; line-height: 1.3; }
+  .track h3 { margin: 0 0 4px; font-size: 16px; }
+  .track p { margin: 0; color: var(--muted); }
+  .grid2 { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; margin-top: 8px; }
+  @media (max-width: 680px) { .grid2 { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px;
+  }
+  .card h3 { margin: 0 0 8px; font-size: 16px; }
+  .card.diff { border-top: 4px solid var(--warn); }
+  .card.hand { border-top: 4px solid var(--accent-2); }
+  code {
+    font: 500 14px "JetBrains Mono", monospace; background: var(--chip);
+    padding: 1px 6px; border-radius: 6px;
+  }
+  ul { margin: 0; padding-left: 20px; }
+  li { margin-bottom: 6px; }
+  .repo {
+    margin-top: 40px; background: var(--chip); border-radius: 12px; padding: 20px 22px;
+  }
+  .repo h2 { margin-top: 0; }
+  footer { margin-top: 48px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>🏠 Challenge 02</h1>
+    <div class="eyebrow">Affordable Housing Stability</div>
+    <p class="subtitle" style="margin-top:16px">Affordable Housing Stability &amp; Eviction Prevention Navigator</p>
+  </header>
+
+  <section>
+        <p>More than half of low-income renters in America spend over 50% of their paycheck on rent — leaving families with one missed work shift or unexpected emergency away from an eviction filing. Across major cities, households appearing in housing court for nonpayment frequently live in properties with documented municipal code violations such as no heat, raw sewage backups, toxic mold or unsafe wiring.</p>
+    <p>Under state and municipal housing codes, those hazards unlock emergency rent relief and legal defenses. However, code-enforcement records and court dockets typically operate in separate administrative silos. Bridging these data streams before a court hearing is critical in delivering relief and protection that the law intended.</p>
+  </section>
+
+  <section>
+    <h2>The challenge</h2>
+    <p>Legal-aid clinics and city housing navigators know that aid exists, but they struggle to obtain corroborated proof of property conditions and code violations, real-time matches to solve stabilization funds, and on-demand guidance when case details change under tight legal deadlines. With waiting rooms full of families and scarce relief funds, clinics have only minutes to isolate active residential safety hazards from irrelevant or closed complaint data.</p>
+  </section>
+
+  <section>
+    <h2>Your mission</h2>
+    <div class="mission">
+      <p>Build a stabilization navigator for a legal-aid paralegal or municipal housing counselor — <strong>not a dashboard, and not a single query with a chat box on it</strong>. An agent that an intake worker can hold a working conversation with, that reaches for real complaint narratives, housing statutes, and semantic search to answer.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><code>// Pick your track</code></h2>
+    <div class="tracks">
+      <div class="track">
+        <div class="icon">⚖️</div>
+        <div><h3>Today at intake —</h3>
+        <p>a tenant has a Monday nonpayment hearing and a cold, moldy apartment. Which open residential 311 records and local statutes corroborate their defense?</p></div>
+      </div>
+      <div class="track">
+        <div class="icon">🛟</div>
+        <div><h3>This relief cycle —</h3>
+        <p>three emergency stabilization funds, strict Area Median Income (AMI) caps, and limited dollars. Which fund fits this household before the clock runs out?</p></div>
+      </div>
+      <div class="track">
+        <div class="icon">🏘️</div>
+        <div><h3>Next quarter —</h3>
+        <p>before the next wave of filings land, which severely rent-burdened residential blocks carry the heaviest cluster of unresolved habitability hazards?</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Requirements &amp; deliverable</h2>
+    <div class="grid2">
+      <div class="card diff">
+        <h3>Required differentiator</h3>
+        <p>BigQuery Vector Search. Tenants and inspectors describe the same hazard twenty different ways — your agent embeds and searches complaint narratives on meaning (<code>AI.EMBED</code> + <code>VECTOR_SEARCH</code>) rather than fragile keyword rules, then filters out closed, commercial, and "no violation found" decoys.</p>
+      </div>
+      <div class="card hand">
+        <h3>You in hand</h3>
+        <p>A Tenant Stabilization Brief — corroborated 100-block residential complaint records, the matching habitability statute and emergency relief fund, why this household qualifies, who lives in the corridor (via a post-output equity audit), what the public record cannot prove alone, and a drafted legal-aid intake memo.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="repo">
+    <h2>📦 Full challenge repository</h2>
+    <p>Visit the Github repo template linked in your team's Discord channel.<br>Make a copy of the repo template which is what you'll turn in as part of your submission.</p>
+  </section>
+
+  <footer><strong>Google Cloud</strong></footer>
+</main>
+</body>
+</html>
